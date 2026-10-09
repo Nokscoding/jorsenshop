@@ -35,5 +35,30 @@ try {
   if(photos.length!==278)throw Error('Unexpected photo count: '+photos.length+' (expected 278)');
   console.log('Restoring V1.1: original design, logo, '+photos.length+' photos, product catalogue and role mockup layouts.');
   await fs.cp(approved,'site',{recursive:true,force:true});
+  // Temporary readable copies let us archive the ORIGINAL, unchanged code in GitHub.
+  const transfer=path.join('site','source-transfer');
+  await fs.mkdir(transfer,{recursive:true});
+  const originalFiles=['index.html','app.js','catalogue.js','catalogue.json','styles.css','mobile-first.css','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html','assets/favicon.svg'];
+  for(const name of originalFiles){
+    const key=name.replaceAll('/','__')+'.txt';
+    await fs.copyFile(path.join(approved,name),path.join(transfer,key));
+  }
+  // Change ONLY the media transport; keep every approved HTML/CSS layout unchanged.
+  const source=path.join('site','app.js');
+  let app=await fs.readFile(source,'utf8');
+  const originalAsset="const asset = path => ROOT + path;";
+  if(!app.includes(originalAsset))throw Error('Approved app.js asset helper has changed');
+  const newAsset=[
+    "const asset = path => {",
+    " const m=typeof path==='string' && path.match(/^assets\\/products\\/([0-9]{3})\\.webp$/);",
+    " if(m && m[1]!=='098')return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,c_limit,w_1200/jorsenshop/catalog/'+m[1]+'.webp';",
+    " if(path==='assets/logo-jorsenshop.png')return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,w_480/jorsenshop/branding/logo-jorsenshop.png';",
+    " if(/^assets\\/videos\\/look-[12]\\.mp4$/.test(path))return 'https://res.cloudinary.com/jrgtsxkt/video/upload/q_auto/jorsenshop/lookbook/'+path.split('/').pop();",
+    " return ROOT + path;",
+    "};",
+  ].join('\\n');
+  app=app.replace(originalAsset,newAsset);
+  await fs.writeFile(source,app,'utf8');
+
   console.log('Approved V1.1 restored into site/.  Real checkout and staff API remain separate and are NOT active in this demo frontend.');
 } finally {await fs.rm(work,{recursive:true,force:true}).catch(()=>{})}
