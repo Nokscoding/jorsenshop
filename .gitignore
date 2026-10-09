@@ -5,3 +5,8 @@ node_modules/
 .netlify/
 .DS_Store
 *.log
+
+# Cloudflare local secrets (NEVER commit)
+.dev.vars
+.dev.vars.*
+.wrangler/
