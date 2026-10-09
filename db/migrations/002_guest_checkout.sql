@@ -83,6 +83,8 @@ BEGIN
  THEN RAISE EXCEPTION 'Statut incorrect'; END IF;
  IF o.status='annulee' AND p_status IS DISTINCT FROM 'annulee' THEN
    RAISE EXCEPTION 'Commande annulée : nouvelle commande nécessaire'; END IF;
+ IF p_paid IS TRUE AND (p_status='annulee' OR o.status='annulee') THEN
+   RAISE EXCEPTION 'Une commande annulée ne peut pas être encaissée'; END IF;
  IF p_status='annulee' AND o.status<>'annulee' THEN
    IF o.payment_status='payee' THEN RAISE EXCEPTION 'Remboursement nécessaire avant annulation'; END IF;
    FOR line IN SELECT * FROM order_items WHERE order_id=o.id LOOP
