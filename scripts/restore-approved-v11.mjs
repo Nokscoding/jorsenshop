@@ -7,6 +7,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {pipeline} from 'node:stream/promises';
 import {Readable} from 'node:stream';
+import {gzipSync} from 'node:zlib';
 
 const source=process.env.RESTORE_V11_SOURCE_URL;
 if(!source)throw Error('RESTORE_V11_SOURCE_URL is not configured. Cannot restore the approved visual interface.');
@@ -42,6 +43,9 @@ try {
   for(const name of originalFiles){
     const key=name.replaceAll('/','__')+'.txt';
     await fs.copyFile(path.join(approved,name),path.join(transfer,key));
+    const raw=await fs.readFile(path.join(approved,name));
+    const compressed=gzipSync(raw,{level:9,mtime:0});
+    await fs.writeFile(path.join(transfer,key+'.gz.b64.txt'),compressed.toString('base64'),'utf8');
   }
   // Change ONLY the media transport; keep every approved HTML/CSS layout unchanged.
   const appSource=path.join('site','app.js');
