@@ -2,6 +2,7 @@
 'use strict';
 const $=(q,r=document)=>r.querySelector(q), $$=(q,r=document)=>[...r.querySelectorAll(q)];
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function optimized(url,width=640){if(!url||typeof url!=='string')return url;try{const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='res.cloudinary.com'||!u.pathname.includes('/image/upload/'))return url;u.pathname=u.pathname.replace('/image/upload/','/image/upload/f_auto,q_auto,c_limit,w_'+Math.min(1200,Math.max(200,Number(width)||640))+'/');return u.toString()}catch{return url}}
 const money=n=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Number(n)||0)+' FC';
 const login=$('#loginPanel'),panel=$('#staffPanel'),content=$('#staffContent'),nav=$('#staffNav');
 let role=null,products=[],orders=[],editing=null,tab='';
@@ -36,7 +37,7 @@ function renderProducts(){
  if(editing){renderEditor();return}
  content.innerHTML='<div class="staff-card"><h2>Importer le catalogue existant</h2><p class="muted">Pour les 73 produits et 278 photos déjà préparés : importe les fichiers WebP dans le compte Cloudinary Jorsenshop, puis sélectionne catalogue.json. Les produits seront importés dans Neon comme brouillons, sans vente automatique.</p><div class="toolbar"><label class="upload-btn">📤 Importer des photos WebP<input type="file" id="batchUpload" multiple accept="image/webp,.webp"></label><label class="upload-btn">📁 Importer tout un dossier<input type="file" id="folderUpload" webkitdirectory multiple></label><label class="upload-btn">📄 Importer catalogue.json<input type="file" id="catalogueUpload" accept="application/json,.json"></label></div><div id="batchStatus" class="muted">Les images sont stockées directement sur Cloudinary ; le catalogue et les stocks restent dans Neon.</div></div>'+ '<div class="toolbar"><div><b>Catalogue</b><div class="muted">'+products.length+' produits (y compris les brouillons)</div></div><button id="newProduct" class="primary-button" type="button">+ Ajouter un produit</button></div>'+
  '<div class="staff-card staff-table-wrap"><table class="staff-table"><thead><tr><th>Photo</th><th>Produit</th><th>Prix</th><th>Couleurs</th><th>Statut</th><th>Action</th></tr></thead><tbody>'+
- products.map(p=>'<tr><td>'+(p.variants?.[0]?.images?.[0]?'<img class="table-avatar" src="'+esc(p.variants[0].images[0])+'" alt="">':'—')+
+ products.map(p=>'<tr><td>'+(p.variants?.[0]?.images?.[0]?'<img class="table-avatar" src="'+esc(optimized(p.variants[0].images[0],200))+'" alt="">':'—')+
  '</td><td><strong>'+esc(p.name)+'</strong><small>'+esc(p.category)+'</small></td><td>'+money(p.priceFc)+'</td><td>'+p.variants.length+'</td><td>'+(p.isPublished?'Publié':'Brouillon')+'</td><td><button type="button" data-edit="'+esc(p.id)+'">Modifier</button></td></tr>').join('')+
  '</tbody></table>'+(products.length?'':'<p class="muted">Le catalogue est encore vide. Crée ton premier produit.</p>')+'</div>';
  $('#batchUpload').onchange=async e=>batchUpload(e.target.files);$('#folderUpload').onchange=async e=>batchUpload(e.target.files);$('#catalogueUpload').onchange=importCatalogue;$('#newProduct').onclick=()=>{editing={name:'',category:'Vêtements',priceFc:0,description:'',tag:'',sizes:[...sizesDefault],
@@ -116,7 +117,7 @@ function renderVariant(v,index,sizes){
  return '<div class="variant-box" data-index="'+index+'"><div class="variant-heading"><b>Couleur '+(index+1)+'</b>'+
  '<button type="button" class="small-btn" data-remove-variant="'+index+'">Supprimer cette couleur</button></div>'+
  '<label class="field">Nom de la couleur<input data-color required value="'+esc(v.color)+'" placeholder="Bleu marine, Noir, Beige..."></label>'+
- '<div class="variant-images">'+v.images.map((url,j)=>'<div><img src="'+esc(url)+'" alt="Photo '+(j+1)+'"><button type="button" aria-label="Retirer la photo" data-variant="'+index+'" data-remove-image="'+j+'">×</button></div>').join('')+'</div>'+
+ '<div class="variant-images">'+v.images.map((url,j)=>'<div><img src="'+esc(optimized(url,320))+'" alt="Photo '+(j+1)+'"><button type="button" aria-label="Retirer la photo" data-variant="'+index+'" data-remove-image="'+j+'">×</button></div>').join('')+'</div>'+
  '<label class="upload-btn">📤 Importer des images<input type="file" data-upload-variant="'+index+'" accept="image/jpeg,image/png,image/webp" multiple></label>'+
  '<span class="upload-state" data-upload-state="'+index+'"></span>'+
  '<h4>Stock disponible par taille</h4><div class="stocks-grid">'+sizes.map(s=>'<label>'+esc(s)+'<input data-size="'+esc(s)+'" type="number" min="0" max="100000" step="1" value="'+Number(v.stock?.[s]||0)+'"></label>').join('')+'</div></div>';
