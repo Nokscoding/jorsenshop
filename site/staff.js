@@ -34,12 +34,12 @@ async function changeTab(t){
 }
 function renderProducts(){
  if(editing){renderEditor();return}
- content.innerHTML='<div class="toolbar"><div><b>Catalogue</b><div class="muted">'+products.length+' produits (y compris les brouillons)</div></div><button id="newProduct" class="primary-button" type="button">+ Ajouter un produit</button></div>'+
+ content.innerHTML='<div class="staff-card"><h2>Importer le catalogue existant</h2><p class="muted">Pour les 73 produits et 278 photos déjà préparés : importe les fichiers WebP dans le compte Cloudinary Jorsenshop, puis sélectionne catalogue.json. Les produits seront importés dans Neon comme brouillons, sans vente automatique.</p><div class="toolbar"><label class="upload-btn">📤 Importer des photos WebP<input type="file" id="batchUpload" multiple accept="image/webp,.webp"></label><label class="upload-btn">📁 Importer tout un dossier<input type="file" id="folderUpload" webkitdirectory multiple></label><label class="upload-btn">📄 Importer catalogue.json<input type="file" id="catalogueUpload" accept="application/json,.json"></label></div><div id="batchStatus" class="muted">Les images sont stockées directement sur Cloudinary ; le catalogue et les stocks restent dans Neon.</div></div>'+ '<div class="toolbar"><div><b>Catalogue</b><div class="muted">'+products.length+' produits (y compris les brouillons)</div></div><button id="newProduct" class="primary-button" type="button">+ Ajouter un produit</button></div>'+
  '<div class="staff-card staff-table-wrap"><table class="staff-table"><thead><tr><th>Photo</th><th>Produit</th><th>Prix</th><th>Couleurs</th><th>Statut</th><th>Action</th></tr></thead><tbody>'+
  products.map(p=>'<tr><td>'+(p.variants?.[0]?.images?.[0]?'<img class="table-avatar" src="'+esc(p.variants[0].images[0])+'" alt="">':'—')+
  '</td><td><strong>'+esc(p.name)+'</strong><small>'+esc(p.category)+'</small></td><td>'+money(p.priceFc)+'</td><td>'+p.variants.length+'</td><td>'+(p.isPublished?'Publié':'Brouillon')+'</td><td><button type="button" data-edit="'+esc(p.id)+'">Modifier</button></td></tr>').join('')+
  '</tbody></table>'+(products.length?'':'<p class="muted">Le catalogue est encore vide. Crée ton premier produit.</p>')+'</div>';
- $('#newProduct').onclick=()=>{editing={name:'',category:'Vêtements',priceFc:0,description:'',tag:'',sizes:[...sizesDefault],
+ $('#batchUpload').onchange=async e=>batchUpload(e.target.files);$('#folderUpload').onchange=async e=>batchUpload(e.target.files);$('#catalogueUpload').onchange=importCatalogue;$('#newProduct').onclick=()=>{editing={name:'',category:'Vêtements',priceFc:0,description:'',tag:'',sizes:[...sizesDefault],
    isPublished:false,pricesConfirmed:false,variants:[{color:'Noir',images:[],stock:Object.fromEntries(sizesDefault.map(s=>[s,0]))}]};renderEditor()};
  $$('[data-edit]',content).forEach(btn=>btn.onclick=()=>{const p=products.find(p=>p.id===btn.dataset.edit);editing=JSON.parse(JSON.stringify(p));renderEditor()});
 }
@@ -94,7 +94,7 @@ function renderEditor(){
        const formData=new FormData();
        formData.append('file',file);formData.append('api_key',signed.apiKey);
        formData.append('timestamp',String(signed.timestamp));formData.append('folder',signed.folder);
-       formData.append('signature',signed.signature);
+       formData.append('signature',signed.signature);formData.append('overwrite','false');
        const upload=await fetch('https://api.cloudinary.com/v1_1/'+encodeURIComponent(signed.cloudName)+'/image/upload',{method:'POST',body:formData});
        const data=await upload.json().catch(()=>({}));
        if(!upload.ok||!data.secure_url||!data.public_id?.startsWith('jorsenshop/catalog/'))throw Error(data?.error?.message||'Échec du transfert Cloudinary');
@@ -150,6 +150,54 @@ function renderFinance(data){
  (data.monthly?.length?'':'<p class="muted">Aucune vente encaissée pour le moment.</p>')+'</div>'+
  '<div class="staff-card"><h2>Accords de rémunération signés</h2>'+(data.agreements?.length?data.agreements.map(a=>'<p>'+esc(a.name)+' · '+a.percentage+' % · '+esc(a.basis)+'</p>').join(''):'<p class="muted">Aucun accord signé enregistré. Aucune commission ne sera calculée automatiquement.</p>')+'</div>';
 }
+
+async function importCatalogue(e){
+ const file=e.target.files?.[0];if(!file)return;
+ const state=$('#batchStatus');if(!state)return;
+ state.textContent='Vérification du fichier…';
+ try{
+  const data=JSON.parse(await file.text());
+  if(!Array.isArray(data)||data.length<1||data.length>150)throw Error('catalogue.json incorrect');
+  if(!window.confirm('Importer '+data.length+' produits comme BROUILLONS non publiés dans Neon ?'))return;
+  state.textContent='Import en cours…';
+  const result=await api('/api/admin/catalogue-import',{method:'POST',body:JSON.stringify({products:data})});
+  state.textContent='Import terminé : '+result.products+' produits, '+result.variants+' variantes. Publication désactivée jusqu’à validation des prix et du stock.';
+  toast('Catalogue importé dans Neon');products=(await api('/api/admin/products')).products;
+ }catch(err){state.textContent='Échec : '+err.message;toast(err.message)}
+}
+async function batchUpload(files){
+ const state=$('#batchStatus');if(!state)return;
+ const chosen=[...(files||[])].filter(f=>/^[0-9]{3}\.webp$/i.test(f.name));
+ if(!chosen.length){state.textContent='Choisir les fichiers 000.webp à 277.webp (dossier assets/products/).';return}
+ if(chosen.length>400){state.textContent='Maximum 400 photos par import';return}
+ if(!confirm('Envoyer '+chosen.length+' fichiers vers Cloudinary jorsenshop/catalog ? Les images existantes ne seront pas écrasées.'))return;
+ let done=0,failed=0;state.textContent='Signature des images…';
+ try{
+  const signatures=await api('/api/admin/media-sign',{method:'POST',body:JSON.stringify({publicIds:chosen.map(f=>f.name.slice(0,3))})});
+  let next=0;
+  const worker=async()=>{
+    while(next<chosen.length){
+     const f=chosen[next++],id=f.name.slice(0,3);
+     try{
+      if(f.size>10*1024*1024||f.type&&f.type!=='image/webp')throw Error('Image invalide');
+      const form=new FormData();
+      form.append('file',f);form.append('folder',signatures.folder);form.append('public_id',id);
+      form.append('timestamp',String(signatures.timestamp));form.append('api_key',signatures.apiKey);
+      form.append('signature',signatures.signatures[id]);form.append('overwrite','false');
+      const resp=await fetch('https://api.cloudinary.com/v1_1/'+encodeURIComponent(signatures.cloudName)+'/image/upload',{method:'POST',body:form});
+      const result=await resp.json().catch(()=>({}));
+      if(!resp.ok)throw Error(result.error?.message||'Échec Cloudinary');
+      done++;
+     }catch(ex){failed++;console.error('Image '+id+': '+ex.message)}
+     state.textContent='Cloudinary · '+(done+failed)+'/'+chosen.length+' traités · '+done+' envoyées · '+failed+' à vérifier. Ne ferme pas cette page.';
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(3,chosen.length)},()=>worker()));
+  state.textContent='Import terminé. '+done+' images envoyées, '+failed+' en échec. Les produits restent en brouillon dans Neon jusqu’à validation.';
+  if(failed)toast('Certaines images n’ont pas été envoyées. Vérifie le navigateur et les doublons.');else toast('Toutes les images ont été envoyées à Cloudinary');
+ }catch(err){state.textContent='Échec de l’import : '+err.message;toast(err.message)}
+}
+
 $('#loginForm').onsubmit=async e=>{
  e.preventDefault();$('#loginError').textContent='';const form=e.target,button=$('button[type="submit"]',form);
  button.disabled=true;
