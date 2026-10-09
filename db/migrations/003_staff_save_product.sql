@@ -2,7 +2,7 @@
 CREATE OR REPLACE FUNCTION staff_save_product(p jsonb) RETURNS text LANGUAGE plpgsql AS $$
 DECLARE
   pid text := p->>'id';
-  v jsonb; s jsonb; vid text;
+  v jsonb; st record; vid text;
   want_publish boolean := coalesce((p->>'isPublished')::boolean,false);
   confirmed boolean := coalesce((p->>'pricesConfirmed')::boolean,false);
   total_stock int := 0;
@@ -36,11 +36,11 @@ BEGIN
     INSERT INTO product_variants(id,product_id,color,images)
       VALUES(vid,pid,left(v->>'color',80),v->'images')
       ON CONFLICT (id) DO UPDATE SET color=excluded.color,images=excluded.images;
-    FOR s IN SELECT key,value FROM jsonb_each_text(coalesce(v->'stock','{}'::jsonb)) LOOP
-       IF length(s->>'key') > 16 OR (s->>'value')::int NOT BETWEEN 0 AND 100000
+    FOR st IN SELECT key,value FROM jsonb_each_text(coalesce(v->'stock','{}'::jsonb)) LOOP
+       IF length(st.key) > 16 OR (st.value)::int NOT BETWEEN 0 AND 100000
        THEN RAISE EXCEPTION 'Stock invalide'; END IF;
-       total_stock := total_stock + (s->>'value')::int;
-       INSERT INTO variant_stock(variant_id,size,quantity) VALUES(vid,s->>'key',(s->>'value')::int)
+       total_stock := total_stock + (st.value)::int;
+       INSERT INTO variant_stock(variant_id,size,quantity) VALUES(vid,st.key,(st.value)::int)
        ON CONFLICT(variant_id,size) DO UPDATE SET quantity=excluded.quantity
        WHERE variant_stock.reserved <= excluded.quantity;
     END LOOP;
