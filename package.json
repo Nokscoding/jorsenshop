@@ -1,11 +1,10 @@
 {
   "name": "jorsenshop",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "description": "Jorsenshop - Cloudflare Pages + Neon PostgreSQL",
+  "description": "Jorsenshop - Vercel Functions + Neon PostgreSQL",
   "scripts": {
-    "dev": "wrangler pages dev site",
     "import:catalogue": "node scripts/import-catalogue.mjs"
   },
   "engines": {
@@ -14,7 +13,5 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0"
   },
-  "devDependencies": {
-    "wrangler": "^4.0.0"
-  }
+  "devDependencies": {}
 }
