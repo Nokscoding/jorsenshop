@@ -1,46 +1,47 @@
-# Jorsenshop · Cloudflare Pages + Neon
+# Jorsenshop — Vercel + Neon PostgreSQL
 
-Boutique Jorsenshop, projet **séparé de NKS Services et de One Market**.
+**Jorsenshop** est une boutique de vêtements indépendante de NKS Services et de One Market.
 
-## État du projet
+## Statut (octobre 2026)
 
-- **GitHub :** `Nokscoding/jorsenshop`.
-- **Neon :** projet `jorsenshop`, base `jorsenshop`, branche `production` ; migration `db/migrations/001_initial.sql` appliquée (15 tables).
-- **Cloudflare Pages :** configuration et fonction API préparées dans ce dépôt, mais **aucun projet Cloudflare ni déploiement ne sont confirmés**.
-- **Interface V1.1 mobile-first validée :** disponible en ZIP, à intégrer à `site/`. Le dépôt contient encore un `site/index.html` provisoire. Ne pas annoncer une boutique en ligne à ce stade.
-- Prix de démonstration en **francs congolais (FC)**, sans validation commerciale.
+- **GitHub** : `Nokscoding/jorsenshop` (branche `main`).
+- **Vercel** : projet `jorsenshop` lié à GitHub ; déploiements automatiques après chaque push.
+- **Neon** : projet `jorsenshop`, branche `production`, base `jorsenshop`.
+- **DATABASE_URL** : configuré comme variable **chiffrée** dans le projet Vercel. Ne jamais mettre cette valeur dans Git.
+- **Schéma PostgreSQL** : migration `db/migrations/001_initial.sql` exécutée, 15 tables et une vue.
+- **API Vercel** : `api/health.js`, `api/products.js`, `api/products/[id].js`.
+- **Boutique V1.1 mobile-first** : interfaces validées, mais la version complète et les médias doivent encore être importés dans `site/`. Le fichier `site/index.html` est une page temporaire.
 
-## Configuration Cloudflare
+Les paiements, commandes, comptes, messagerie, permissions d'administration et tableaux investisseurs **ne sont pas reliés à la base** à ce stade. Ne pas ouvrir les ventes avec les données de démonstration.
 
-1. Ouvrir [Cloudflare Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages).
-2. Choisir **Create application → Pages → Import an existing Git repository**.
-3. Sélectionner `Nokscoding/jorsenshop` ; branche `main`.
-4. Configuration de la compilation : **Build command** `exit 0`, **Build output directory** `site`.
-5. Dans **Settings → Variables and Secrets**, définir `DATABASE_URL` comme **secret**, avec la connexion à la base Neon **jorsenshop** (pas `neondb`). Ne jamais l'inclure dans GitHub, les pages HTML ou les captures d'écran.
-6. Les routes de l'API Cloudflare sont servies via `functions/api/[[path]].js`. Tester `/api/health` après déploiement.
-7. **Ne pas lancer les ventes** avant import de la V1.1, vérification des prix/stocks, et contrôle d'accès serveur pour les espaces privés.
+## Installer l'interface complète
 
-## API · Phase 1
+L'archive V1.1 est conservée sur Google Drive :
+[Archive V1.1 complète](https://drive.google.com/file/d/1Ox95S59Rk8JGgqKpyGlWvBJVtysl-h_C/view)
 
-- `GET /api/health` — connexion Neon.
-- `GET /api/products` — catalogue **publié et dont les prix sont confirmés**.
-- `GET /api/products/:id` — fiche produit publique.
+Le workflow [Import approved Jorsenshop V1.1 UI](.github/workflows/import-approved-ui.yml) télécharge et décompresse l'archive vers `site/`. Cette archive est actuellement privée : le téléchargement GitHub Actions nécessitera que le propriétaire la rende **temporairement accessible à toute personne disposant du lien**. Dès l'import terminé, rétablir le partage restreint.
 
-Aucun endpoint d'écriture n'est activé : commande, compte, paiement, messagerie, livraison et tableau investisseur requièrent encore une authentification/autorisation serveur.
+Le workflow se lance manuellement dans GitHub Actions, ou par une modification de `docs/IMPORT-TRIGGER.md`.
 
-## Développement
+## API lecture seule
 
-```bash
-npm install
-# Créer .dev.vars localement (fichier ignoré par Git) :
-# DATABASE_URL="postgresql://..."
-npm run dev
-```
+| Route | Description |
+|---|---|
+| `GET /api/health` | Vérifie Neon, ne retourne jamais de secrets |
+| `GET /api/products` | Liste des produits publiés et prix validés |
+| `GET /api/products/:id` | Détail d'un produit publié |
 
-**Ne commitez jamais `.dev.vars`**, les secrets Neon ou de vraies données clients.
+Les données de démonstration ne sont pas publiées dans Neon : aucun produit ne sera retourné tant que le catalogue n'aura pas été importé et les prix/stock validés.
 
-## Ressources
+## Étapes de production restantes
 
-- [Archive complète de l'interface V1.1 validée](https://drive.google.com/file/d/1Ox95S59Rk8JGgqKpyGlWvBJVtysl-h_C/view)
-- [Migration PostgreSQL](db/migrations/001_initial.sql)
-- [Guide d'intégration Cloudflare](docs/CLOUDFLARE.md)
+1. Importer les interfaces et leurs images dans `site/`.
+2. Vérifier `/api/health` sur Vercel et tester les rendus mobile 320–375 px.
+3. Importer le catalogue réel dans Neon, confirmer prix en FC et stocks par taille/couleur.
+4. Construire authentification réelle, sessions, protection des rôles et routes internes.
+5. Brancher commandes, paiements à livraison, suivi livreur, messages et demandes de remboursement.
+6. Valider les chiffres financiers et les conditions contractuelles avant diffusion.
+
+**Sécurité :** les URL internes discrètes ne protègent aucun compte. Une authentification côté serveur est impérative avant toute utilisation privée réelle.
+
+Voir [le guide Vercel](docs/VERCEL.md) et [l'architecture](docs/architecture.md). Les dossiers `functions/` (Cloudflare) et `netlify/` correspondent à des essais précédents et ne sont pas utilisés par Vercel.
