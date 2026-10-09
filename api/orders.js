@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
-import {db,json,only} from './_lib/shared.js';
+import {db,json,only,rateLimit} from './_lib/shared.js';
 export default async function handler(req,res){
  if(!only(req,res,'POST'))return;
+ try{if(!await rateLimit(req,'guest_checkout',12,60))return json(res,429,{error:'Trop de commandes. Réessaie plus tard.'})}catch{return json(res,503,{error:'Commandes temporairement indisponibles'})}
  try{
    const b=req.body||{};
    const items=Array.isArray(b.items)?b.items.map(i=>({variantId:String(i.variantId||''),size:String(i.size||''),quantity:Number(i.quantity)})):[];
