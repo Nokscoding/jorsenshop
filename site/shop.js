@@ -2,6 +2,7 @@
 'use strict';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function optimized(url,width=640){if(!url||typeof url!=='string')return url;try{const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='res.cloudinary.com'||!u.pathname.includes('/image/upload/'))return url;u.pathname=u.pathname.replace('/image/upload/','/image/upload/f_auto,q_auto,c_limit,w_'+Math.min(1200,Math.max(200,Number(width)||640))+'/');return u.toString()}catch{return url}}
 const money=n=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Number(n)||0)+' FC';
 const modal=$('#modalRoot'),grid=$('#productsGrid'),status=$('#catalogueStatus');
 const cartKey='jorsen_guest_cart_v1',ordersKey='jorsen_guest_orders_v1';
@@ -16,7 +17,7 @@ async function api(path,opts={}){
  return value;
 }
 function validImage(url){try{const u=new URL(url);return u.protocol==='https:'&&u.hostname==='res.cloudinary.com'}catch{return false}}
-function photo(p,v=0){const url=p?.variants?.[v]?.images?.[0];return validImage(url)?url:null}
+function photo(p,v=0){const url=p?.variants?.[v]?.images?.[0];return validImage(url)?optimized(url,800):null}
 function showModal(title,html,large=false){
  modal.hidden=false;modal.innerHTML='<div class="modal-dialog '+(large?'large':'')+'" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="modal-top"><h2>'+esc(title)+'</h2><button type="button" class="close" data-close>✕</button></div>'+html+'</div>';
  document.body.style.overflow='hidden'; $('[data-close]',modal).onclick=closeModal;
