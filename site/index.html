@@ -1,2 +1,40 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jorsenshop — préparation</title></head><body style="font-family:system-ui;max-width:45rem;margin:3rem auto;padding:1rem"><h1>Jorsenshop</h1><p>Le socle serveur est initialisé. La V1.1 mobile-first validée doit encore être importée ici avant le lancement.</p><p>Cette page technique ne constitue pas une boutique ouverte.</p></body></html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b2034">
+  <meta name="description" content="Jorsenshop — Votre boutique mode et sneakers à Lubumbashi. Commandez sans créer de compte.">
+  <title>Jorsenshop — Mode & sneakers</title>
+  <link rel="stylesheet" href="/shop.css">
+  <script defer src="/shop.js"></script>
+</head>
+<body>
+  <div class="announcement">JORSENSHOP <span>·</span> MODE & SNEAKERS <span>·</span> LIVRAISON À LUBUMBASHI</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="Jorsenshop, accueil"><span class="brand-mark">J</span><strong>JORSEN<span>SHOP</span></strong></a>
+      <nav class="header-links"><a href="#catalogue">Collection</a><a href="#comment-commander">Comment commander</a></nav>
+      <div class="header-actions"><button id="historyBtn" class="ghost-button" type="button">Mes commandes</button><button id="cartBtn" class="cart-button" type="button" aria-label="Ouvrir le panier">Panier <b id="cartCount">0</b></button></div>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div><div class="eyebrow">LA SÉLECTION JORSENSHOP</div><h1>Ton style.<br><em>Sans compromis.</em></h1><p>Des pièces qui donnent le ton. Trouve ton modèle, choisis ta couleur et commande directement, sans créer de compte.</p><a class="primary-button" href="#catalogue">Découvrir la collection <span>→</span></a><div class="hero-points"><span>✓ Commande sans inscription</span><span>✓ Paiement à la livraison</span></div></div>
+        <div class="hero-art"><span class="hero-number">01 / COLLECTION</span><div class="art-ring"></div><div class="hero-art-copy">LA MODE<br><i>À TA FAÇON.</i></div><span class="hero-art-bottom">JORSENSHOP / LUBUMBASHI</span></div>
+      </div>
+    </section>
+    <section class="benefits"><div class="container benefit-grid"><div><b>01</b><span>Choisis tes articles</span></div><div><b>02</b><span>Confirme ta commande</span></div><div><b>03</b><span>Réceptionne et paie</span></div></div></section>
+    <section class="container catalogue" id="catalogue">
+      <div class="section-heading"><div><div class="eyebrow">TOUTES LES PIÈCES</div><h2>La collection</h2></div><p>Prix en francs congolais (FC)</p></div>
+      <div class="catalogue-tools"><input type="search" id="searchInput" placeholder="Chercher un modèle, une couleur..." aria-label="Rechercher un produit"><select id="categoryFilter" aria-label="Catégorie"><option value="">Toutes les catégories</option></select><select id="sortFilter" aria-label="Trier"><option value="featured">Notre sélection</option><option value="asc">Prix croissant</option><option value="desc">Prix décroissant</option></select></div>
+      <div id="catalogueStatus" class="notice">Chargement de la collection…</div>
+      <div id="productsGrid" class="products-grid" aria-live="polite"></div>
+    </section>
+    <section class="info-section" id="comment-commander"><div class="container info-grid"><div><div class="eyebrow">SIMPLE & RAPIDE</div><h2>Le shopping,<br>sans complications.</h2><p>Ajoute les articles à ton panier, précise ton nom, ton numéro de téléphone et ton adresse de livraison. Notre équipe gère la suite.</p></div><div class="info-card"><b>COMMENT ÇA MARCHE</b><ol><li>Sélectionne une couleur et une taille</li><li>Envoie ta commande</li><li>Notre équipe confirme la livraison</li><li>Paie à la réception</li></ol></div></div></section>
+  </main>
+  <footer><div class="container footer-inner"><span>JORSENSHOP · Tous droits réservés</span><span>Lubumbashi, RDC</span><a href="/staff.html" rel="nofollow">Espace de gestion</a></div></footer>
+  <div id="modalRoot" class="modal-root" hidden></div>
+  <div id="toast" class="toast-region" aria-live="polite"></div>
+</body></html>
