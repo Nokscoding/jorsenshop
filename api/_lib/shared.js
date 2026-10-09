@@ -16,7 +16,7 @@ export function only(req,res,method){
     const origin=req.headers.origin, host=req.headers.host;
     if(origin && new URL(origin).host!==host){json(res,403,{error:'Origine refusée'});return false}
     const len=Number(req.headers['content-length']||0);
-    if(len>64_000){json(res,413,{error:'Requête trop volumineuse'});return false}
+    if(len>512_000){json(res,413,{error:'Requête trop volumineuse'});return false}
   }
   return true;
 }
@@ -66,4 +66,12 @@ export function cloudUrl(url){
       parsed.pathname.startsWith('/'+cloud+'/image/upload/') &&
       /\/jorsenshop\/catalog\/[A-Za-z0-9_\/-]+\.(png|jpe?g|webp|avif)$/i.test(parsed.pathname);
   }catch{return false}
+}
+
+export async function rateLimit(req,action,maxHits=10,windowMinutes=15){
+ const source=String(req.headers['x-forwarded-for']||req.headers['x-real-ip']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,128);
+ const id=crypto.createHmac('sha256',process.env.SESSION_SECRET||'unconfigured').update(source).digest('hex');
+ const sql=db();
+ const rows=await sql`SELECT count_api_action(${id},${action},${maxHits},${windowMinutes}) AS allowed`;
+ return rows[0]?.allowed===true;
 }
