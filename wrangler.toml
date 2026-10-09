@@ -1,0 +1,6 @@
+name = "jorsenshop"
+pages_build_output_dir = "./site"
+compatibility_date = "2026-10-09"
+
+# DATABASE_URL doit être créé comme SECRET depuis le tableau de bord Cloudflare.
+# Ne jamais placer de chaîne de connexion ici ni dans un fichier suivi par Git.
