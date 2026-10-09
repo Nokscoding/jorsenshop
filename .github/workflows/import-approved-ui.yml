@@ -1,0 +1,59 @@
+name: Import approved Jorsenshop V1.1 UI
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/IMPORT-TRIGGER.md'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Jorsenshop main branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Download approved V1.1 archive
+        run: |
+          python -m pip install --quiet gdown
+          gdown --fuzzy 'https://drive.google.com/file/d/1Ox95S59Rk8JGgqKpyGlWvBJVtysl-h_C/view' --output /tmp/jorsenshop-ui.zip
+          test -s /tmp/jorsenshop-ui.zip
+
+      - name: Extract exactly the approved static interfaces and images
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          zpath = '/tmp/jorsenshop-ui.zip'
+          dest = Path('site')
+          with zipfile.ZipFile(zpath) as z:
+              names = z.namelist()
+              photos = [x for x in names if x.startswith('Jorsenshop_V1/assets/products/') and x.endswith('.webp')]
+              assert len(photos) >= 272, f'Expected the approved catalogue: found {len(photos)} images'
+              assert 'Jorsenshop_V1/index.html' in names
+              assert 'Jorsenshop_V1/catalogue.json' in names
+              for n in names:
+                  if not n.startswith('Jorsenshop_V1/') or n.endswith('/'):
+                      continue
+                  rel = Path(n).relative_to('Jorsenshop_V1')
+                  if rel.is_absolute() or '..' in rel.parts:
+                      raise ValueError('Invalid archive path')
+                  out = dest / rel
+                  out.parent.mkdir(parents=True, exist_ok=True)
+                  out.write_bytes(z.read(n))
+              print(f'Imported {len(photos)} product photos into {dest}/')
+          PY
+
+      - name: Publish interface to GitHub (triggers linked Vercel deployment)
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add site/
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(ui): import approved Jorsenshop V1.1 mobile-first catalogue'
+            git push
+          fi
