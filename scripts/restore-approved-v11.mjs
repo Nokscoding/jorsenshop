@@ -56,7 +56,7 @@ try {
     " if(/^assets\\/videos\\/look-[12]\\.mp4$/.test(path))return 'https://res.cloudinary.com/jrgtsxkt/video/upload/q_auto/jorsenshop/lookbook/'+path.split('/').pop();",
     " return ROOT + path;",
     "};",
-  ].join('\\n');
+  ].join('\n');
   app=app.replace(originalAsset,newAsset);
   await fs.writeFile(source,app,'utf8');
 
