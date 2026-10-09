@@ -44,8 +44,8 @@ try {
     await fs.copyFile(path.join(approved,name),path.join(transfer,key));
   }
   // Change ONLY the media transport; keep every approved HTML/CSS layout unchanged.
-  const source=path.join('site','app.js');
-  let app=await fs.readFile(source,'utf8');
+  const appSource=path.join('site','app.js');
+  let app=await fs.readFile(appSource,'utf8');
   const originalAsset="const asset = path => ROOT + path;";
   if(!app.includes(originalAsset))throw Error('Approved app.js asset helper has changed');
   const newAsset=[
@@ -58,7 +58,7 @@ try {
     "};",
   ].join('\n');
   app=app.replace(originalAsset,newAsset);
-  await fs.writeFile(source,app,'utf8');
+  await fs.writeFile(appSource,app,'utf8');
 
   console.log('Approved V1.1 restored into site/.  Real checkout and staff API remain separate and are NOT active in this demo frontend.');
 } finally {await fs.rm(work,{recursive:true,force:true}).catch(()=>{})}
