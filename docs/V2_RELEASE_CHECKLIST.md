@@ -48,7 +48,7 @@ Inscrire d'abord le premier administrateur sur Neon Auth ; puis lui attribuer ma
 ## Blocages réels avant ouverture publique
 
 1. Recevoir du gérant les numéros Airtel Money/Orange Money et le bénéficiaire exact pour les paiements préalables.
-2. Prix et stocks réels : 73 produits actuellement en brouillon, aucun prix confirmé, aucun stock validé. Les publier individuellement après vérification.
+2. Les 73 produits sont visibles dans Neon développement avec leurs prix courants (fictifs, modifiables librement par le gérant), sans validation des prix préalable. Aucun stock n'est disponible à ce stade : le gérant doit renseigner les quantités avant des ventes réelles.
 3. Tester les cookies Neon Auth et Vercel pour les comptes volontaires et professionnels ; confirmer surtout qu'aucun compte n'est requis pour accéder à la boutique ni pour acheter.
 4. Tester le choix obligatoire des 4 villes, l'achat invité, le reçu privé, la messagerie invitée, l'inscription facultative, les permissions, les paiements, les notifications et les livraisons sur iPhone/PC.
 5. Mettre en place les notifications push si des alertes sont voulues lorsque le site est fermé (à ce stade notifications persistantes + vérification périodique en application).
@@ -67,3 +67,7 @@ Inscrire d'abord le premier administrateur sur Neon Auth ; puis lui attribuer ma
 - Déploiement : aucun nouveau déploiement Vercel autorisé/effectué.
 
 La V2 ne doit pas être déclarée finale tant que l'authentification et le parcours de commande réel n'ont pas passé les tests.
+
+## Décision commerciale : tarifs de démarrage
+
+Les 73 articles sont affichés dans le catalogue de développement avec leur prix actuel. Aucun workflow de confirmation des prix n'est exigé : le gérant modifie les noms, catégories et montants lorsqu'il le souhaite. La publication est indépendante de ce drapeau. Les quantités de stock et la vérification des commandes restent contrôlées pour éviter la vente de produits indisponibles. Migration SQL 008 exécutée uniquement sur Neon développement.
