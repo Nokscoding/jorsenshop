@@ -40,6 +40,25 @@ export default async function handler(req,res){
    return json(res,200,{ok:true,updated:rows[0].updated});
   }catch{return json(res,409,{error:'Renommage impossible'})}
  }
+ if(b.action==='update-metadata'){
+  const id=String(b.id||''),name=String(b.name||'').trim(),category=String(b.category||'').trim(),
+    priceFc=Number(b.priceFc),description=String(b.description||'').trim();
+  if(!/^js-[a-zA-Z0-9_-]{3,64}$/.test(id)||name.length<2||name.length>150||
+     !Number.isSafeInteger(priceFc)||priceFc<0||description.length>3000)
+    return json(res,400,{error:'Fiche produit invalide'});
+  const cats=await sql`SELECT 1 FROM v2_categories WHERE name=${category} AND active=true`;
+  if(!cats.length)return json(res,400,{error:'Catégorie inexistante'});
+  const wantsPublished=b.isPublished===true && b.pricesConfirmed===true;
+  if(wantsPublished){
+    const available=await sql`SELECT 1 FROM product_variants v JOIN variant_stock st ON st.variant_id=v.id
+      WHERE v.product_id=${id} AND st.quantity>0 LIMIT 1`;
+    if(!available.length)return json(res,409,{error:'Ajoutez du stock avant de publier'});
+  }
+  const rows=await sql`UPDATE products SET name=${name},category=${category},description=${description},
+    price_fc=${priceFc},is_published=${wantsPublished},prices_confirmed=${b.pricesConfirmed===true},
+    updated_at=now() WHERE id=${id} RETURNING id`;
+  return json(res,rows.length?200:404,{ok:!!rows.length,id});
+ }
  if(b.action==='save-product'){
   const name=String(b.name||'').trim(),category=String(b.category||'').trim();
   const priceFc=Number(b.priceFc),variants=b.variants;
