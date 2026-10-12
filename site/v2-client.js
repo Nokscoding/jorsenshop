@@ -14,6 +14,20 @@
  };
  let city=localStorage.getItem(KEY)||'',user=null,openedChat=null,ordersLoading=false;
  let cities=[],shipping=null;
+ const RECEIPTS_KEY='jorsenshop_v2_guest_receipts';
+ const receipts=()=>{
+   try{const v=JSON.parse(localStorage.getItem(RECEIPTS_KEY)||'[]');
+    return Array.isArray(v)?v.filter(x=>/^JS-[0-9]{8}-[0-9]{6}$/.test(x.number)&&
+      /^[A-Za-z0-9_-]{32,100}$/.test(x.token)).slice(0,40):[];
+   }catch{return []}
+ };
+ const receiptFor=number=>receipts().find(x=>x.number===number)?.token||'';
+ function saveReceipt(number,token){
+  if(!/^[A-Za-z0-9_-]{32,100}$/.test(String(token||'')))return;
+  const list=receipts().filter(x=>x.number!==number);
+  list.unshift({number,token,city,date:new Date().toISOString()});
+  localStorage.setItem(RECEIPTS_KEY,JSON.stringify(list.slice(0,40)));
+ }
  const css=document.createElement('style');
  css.textContent=[
  '.v2-veil{position:fixed;inset:0;background:#f6f9fb;z-index:15000;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;font-family:inherit;color:#14253f}',
@@ -72,33 +86,36 @@
    el.querySelectorAll('[data-city]').forEach(x=>x.classList.toggle('selected',x===btn));
    el.querySelector('#v2-next').disabled=false;
   });
+  el.querySelector('#v2-next').textContent='Accéder à la boutique';
   el.querySelector('#v2-next').onclick=async()=>{
-   if(!user)return showAuth('signup');
    try{
-    await fetchJSON('/api/v2/me',{method:'POST',body:JSON.stringify({city})});
-    $('#v2-veil')?.remove();await loadLiveCatalogue();loadOrders();
+    if(user)await fetchJSON('/api/v2/me',{method:'POST',body:JSON.stringify({city})});
+    $('#v2-veil')?.remove();
+    await loadLiveCatalogue();enhanceCheckout();loadOrders();
    }catch(err){notify(err.message)}
   };
  }
  function showAuth(mode='signup'){
   const signup=mode==='signup';
   const el=veil('<div class="v2-kicker">'+h(cities.find(x=>x.id===city)?.name||city)+'</div><h2>'+
-   (signup?'Créer mon compte':'Se connecter')+'</h2><p>Email et mot de passe suffisent pour retrouver vos commandes sur tous vos appareils.</p>'+
+   (signup?'Créer mon compte':'Se connecter')+'</h2><p>Le compte est facultatif. Il permet de retrouver vos achats sur plusieurs appareils.</p>'+
    '<form id="v2-auth-form"><label>Adresse e-mail<input name="email" type="email" autocomplete="email" required></label>'+
    '<label>Mot de passe<input name="password" type="password" minlength="8" autocomplete="'+(signup?'new-password':'current-password')+'" required></label>'+
    '<div id="v2-auth-error" role="alert"></div><button class="v2-btn" type="submit">'+
    (signup?'Créer un compte':'Connexion')+'</button></form>'+
    '<button class="v2-link" id="v2-switch">'+(signup?'Déjà inscrit ? Se connecter':'Nouveau client ? Créer un compte')+'</button>'+
+   '<button class="v2-link" id="v2-guest">Continuer sans compte</button>'+
    '<button class="v2-link" id="v2-back">← Changer de ville</button>');
   $('#v2-switch',el).onclick=()=>showAuth(signup?'login':'signup');
   $('#v2-back',el).onclick=showCities;
+  $('#v2-guest',el).onclick=async()=>{$('#v2-veil')?.remove();await loadLiveCatalogue();enhanceCheckout();loadOrders()};
   $('#v2-auth-form',el).onsubmit=async e=>{
    e.preventDefault();const data=new FormData(e.target),button=e.target.querySelector('button');
    button.disabled=true;const error=$('#v2-auth-error',el);error.textContent='';
    try{
     await fetchJSON('/api/v2/auth?action='+(signup?'signup':'login'),{method:'POST',
       body:JSON.stringify({email:data.get('email'),password:data.get('password')})});
-    const session=await fetchJSON('/api/v2/auth?action=session');
+    const session=await fetchJSON('/api/v2/auth?action=session').catch(()=>({authenticated:false}));
     if(!session.authenticated)throw Error('Connexion non confirmée. Réessayez.');
     user=session.user;
     await fetchJSON('/api/v2/me',{method:'POST',
@@ -134,7 +151,6 @@
      catch{}
    }
    if(!cities.some(c=>c.id===city)){city='';showCities()}
-   else if(!user)showAuth('signup');
    else {await loadLiveCatalogue();enhanceCheckout();loadOrders()}
   }catch(err){
    const el=veil('<div class="v2-kicker">JORSENSHOP V2</div><h2>Site en préparation</h2>'+
@@ -149,7 +165,7 @@
  }
  let augmenting=false;
  async function enhanceCheckout(){
-  if(augmenting||!user)return;
+  if(augmenting||!city)return;
   const form=document.querySelector('[data-form="checkout"]');
   if(!form||form.querySelector('#v2-shipping-mode'))return;
   augmenting=true;
@@ -171,12 +187,12 @@
  }
  document.addEventListener('submit',async e=>{
   const form=e.target;
-  if(!form.matches('[data-form="checkout"]')||!user)return;
+  if(!form.matches('[data-form="checkout"]')||!city)return;
   e.preventDefault();e.stopImmediatePropagation();
   const btn=form.querySelector('[type="submit"]');
   if(btn)btn.disabled=true;
   try{
-   const f=new FormData(form),cart=JSON.parse(localStorage.getItem('jorsen_v1_cart')||'[]');
+   const f=new FormData(form),cart=typeof window.JORSEN_CART_ITEMS==='function'?window.JORSEN_CART_ITEMS():[];
    const base=window.JORSEN_CATALOG||[];
    const items=cart.map(row=>{
      const p=base.find(x=>x.id===row.id);
@@ -194,31 +210,54 @@
     items,idempotencyKey:crypto.randomUUID().replaceAll('-','')
    };
    const result=await fetchJSON('/api/v2/orders',{method:'POST',body:JSON.stringify(payload)});
-   localStorage.removeItem('jorsen_v1_cart');
-   notify('Commande '+result.orderNumber+' enregistrée. Montant total : '+money(result.total)+'. '+result.instruction);
+   saveReceipt(result.orderNumber,result.trackingToken);
+   if(typeof window.JORSEN_CLEAR_CART==='function')window.JORSEN_CLEAR_CART();
+   notify('Commande '+result.orderNumber+' enregistrée. Total : '+money(result.total)+'. '+result.instruction+
+    ' Conservez cette référence pour suivre la commande.');
+   if(!user)location.hash='#/compte/commandes';
    loadOrders();
   }catch(err){notify(err.message)}
   finally{if(btn)btn.disabled=false;}
  },true);
  async function loadOrders(){
-  if(!user||ordersLoading||!location.hash.includes('compte'))return;
+  if(ordersLoading||!location.hash.includes('compte'))return;
   const main=$('#app main')||document.querySelector('main');
   if(!main||$('.v2-real-orders',main))return;
   ordersLoading=true;
   try{
-   const r=await fetchJSON('/api/v2/orders');const rows=r.orders||[];
+   const saved=receipts();
+   let rows=[];
+   if(user){
+     try{const r=await fetchJSON('/api/v2/orders');rows=(r.orders||[]).map(o=>({
+       number:o.order_number,city:o.delivery_city,status:o.status,payment:o.payment_status,total:o.totalFc
+     }));}catch{}
+   }
+   for(const receipt of saved){
+    if(rows.some(o=>o.number===receipt.number))continue;
+    try{
+     const r=await fetchJSON('/api/order-status',{method:'POST',body:JSON.stringify({
+       orderNumber:receipt.number,trackingToken:receipt.token
+     })});
+     rows.push({number:receipt.number,city:receipt.city,
+       status:r.order.status,payment:r.order.payment,total:r.order.total});
+    }catch{/* The receipt stays on this device for later retry. */}
+   }
    const panel=document.createElement('section');panel.className='v2-real-orders';
-   panel.innerHTML='<h2>Mes commandes enregistrées</h2>'+
-    (rows.length?rows.map(o=>'<div class="v2-order-row"><div><strong>'+h(o.order_number)+'</strong>'+
-      '<small>'+h(o.delivery_city)+' · '+h(o.status)+' · '+h(o.payment_status)+'</small>'+
-      '<small>'+money(o.totalFc)+'</small></div><button class="v2-mini-btn" data-v2-order="'+h(o.order_number)+
-      '">Suivre et discuter</button></div>').join(''):'<p>Aucune commande réelle pour le moment.</p>');
+   panel.innerHTML='<div class="v2-order-row"><h2>Suivi de mes commandes</h2>'+
+     '<button class="v2-mini-btn" data-v2-change-city>Ville : '+h(cities.find(x=>x.id===city)?.name||city)+'</button></div>'+
+     (rows.length?rows.map(o=>'<div class="v2-order-row"><div><strong>'+h(o.number)+'</strong>'+
+      '<small>'+h(o.city||'')+' · '+h(o.status)+' · '+h(o.payment)+'</small>'+
+      '<small>'+money(o.total)+'</small></div><button class="v2-mini-btn" data-v2-order="'+
+      h(o.number)+'">Suivre et discuter</button></div>').join(''):
+      '<p>Aucune commande enregistrée. Vous pouvez acheter sans créer de compte.</p>')+
+     (!user?'<div class="v2-order-row"><button class="v2-mini-btn" data-v2-auth="signup">Créer un compte (facultatif)</button>'+
+      '<button class="v2-mini-btn" data-v2-auth="login">Se connecter</button></div>':'');
    main.append(panel);
-  }catch{/* no demo data is promoted as real */}
-  finally{ordersLoading=false}
+  }finally{ordersLoading=false}
  }
  async function showChat(number){
   openedChat=number;
+  const guestToken=receiptFor(number);
   const wrap=document.createElement('div');wrap.className='v2-dialog';wrap.id='v2-chat-dialog';
   wrap.innerHTML='<div class="v2-dialog-content" role="dialog" aria-modal="true">'+
    '<button class="v2-mini-btn" id="v2-close-chat">Fermer</button><h2>Commande '+h(number)+'</h2>'+
@@ -232,7 +271,9 @@
   async function refresh(){
     if(openedChat!==number)return;
     try{
-     const r=await fetchJSON('/api/v2/chat?orderNumber='+encodeURIComponent(number));
+     const r=guestToken?await fetchJSON('/api/v2/chat',{method:'POST',
+      body:JSON.stringify({action:'list',orderNumber:number,trackingToken:guestToken})}):
+      await fetchJSON('/api/v2/chat?orderNumber='+encodeURIComponent(number));
      const node=$('#v2-chat-log',wrap);
      node.innerHTML=(r.messages||[]).map(m=>
        '<div class="v2-chat-msg'+(m.isMine?' mine':'')+'">'+h(m.message)+'</div>').join('');
@@ -243,7 +284,7 @@
     e.preventDefault();const f=e.target,msg=String(new FormData(f).get('message')||'').trim();
     if(!msg)return;
     try{await fetchJSON('/api/v2/chat',{method:'POST',
-      body:JSON.stringify({orderNumber:number,message:msg})});f.reset();refresh()}
+      body:JSON.stringify({orderNumber:number,message:msg,trackingToken:guestToken})});f.reset();refresh()}
     catch(err){notify(err.message)}
   };
   refresh();
@@ -251,9 +292,12 @@
  document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-v2-order]');
   if(btn)showChat(btn.dataset.v2Order);
+  const auth=e.target.closest('[data-v2-auth]');
+  if(auth)showAuth(auth.dataset.v2Auth);
+  if(e.target.closest('[data-v2-change-city]'))showCities();
  });
  window.addEventListener('hashchange',()=>{setTimeout(()=>{enhanceCheckout();loadOrders()},150)});
- const observer=new MutationObserver(()=>{if(!user)return;enhanceCheckout();loadOrders()});
+ const observer=new MutationObserver(()=>{if(!city)return;enhanceCheckout();loadOrders()});
  function start(){observer.observe(document.body,{childList:true,subtree:true});init();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
  else start();
