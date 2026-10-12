@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import {db,json,only,rateLimit} from '../_lib/shared.js';
-import {requireUser,validWriteOrigin} from './_lib/identity.js';
+import {currentUser,requireUser,validWriteOrigin} from './_lib/identity.js';
 import {shippingQuote,normalizeCity} from '../../../v2/shipping-policy.mjs';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Méthode interdite'});
- const user=await requireUser(req,res);if(!user)return;
+ const user=req.method==='GET'?await requireUser(req,res):await currentUser(req);
+ if(req.method==='GET'&&!user)return;
  const sql=db();
  if(req.method==='GET'){
   try{
@@ -39,7 +40,7 @@ export default async function handler(req,res){
  const trackingToken=crypto.randomBytes(32).toString('base64url');
  const tokenHash=crypto.createHash('sha256').update(trackingToken).digest('hex');
  try{
-  const rows=await sql`SELECT place_v2_order(${user.id},${name},${phone},${address},${city},
+  const rows=await sql`SELECT place_v2_order(${user?.id||null},${name},${phone},${address},${city},
     ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode},${quote.paymentRequiredBeforePurchase?b.paymentProvider:null}) AS result`;
   const result=rows[0].result;
   return json(res,201,{...result,trackingToken:result.existing?null:trackingToken,
