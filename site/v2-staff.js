@@ -230,6 +230,10 @@ async function chat(number){
    e.target.reset();await refresh()}catch(err){notice(err.message)}
  };
  refresh();
+ const timer=setInterval(()=>{
+  if(!div.isConnected){clearInterval(timer);return;}
+  if(!document.hidden)refresh();
+ },9000);
 }
 async function uploadImage(file){
  const sign=await api('admin/media-sign',{method:'POST',body:'{}'});
@@ -365,8 +369,17 @@ const mo=new MutationObserver(()=>{
 function start(){
  mo.observe(document.body,{childList:true,subtree:true});init();
  setInterval(async()=>{if(document.hidden||!profile||portal!=='admin')return;
-  try{const n=await api('notifications');if(n.unread>unread)notice('Vous avez de nouvelles notifications JorsenShop');
-  unread=n.unread;if(tab==='notifications')await load()}catch{}
+  try{
+   const n=await api('notifications');
+   if(n.unread>unread){
+    notice('Nouvelle commande ou nouveau message JorsenShop');
+    unread=n.unread;
+    await load();
+   }else{
+    unread=n.unread;
+    if(tab==='notifications')await load();
+   }
+  }catch{}
  },30000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
