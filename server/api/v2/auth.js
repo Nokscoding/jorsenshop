@@ -29,7 +29,12 @@ export default async function handler(req,res){
   if(email.length>254||!/.+@.+\..+/.test(email)||password.length<8||password.length>128)
     return json(res,400,{error:'Email ou mot de passe invalide (8 caractères minimum)'});
   payload={email,password};
-  if(action==='signup')payload.name='Client JorsenShop';
+  if(action==='signup'){
+   const name=String(body.name||'').trim().replace(/\s+/g,' ');
+   if(name.length<2||name.length>100)
+    return json(res,400,{error:'Indiquez votre nom complet'});
+   payload.name=name;
+  }
   path=action==='signup'?'/sign-up/email':'/sign-in/email';
  }else path='/sign-out';
  try{
