@@ -33,13 +33,17 @@ export async function requireUser(req,res){
  if(!user){json(res,401,{error:'Connectez-vous pour continuer'});return null;}
  return user;
 }
-export async function requireStaff(req,res,roles=['admin','gerant']){
- const user=await requireUser(req,res);if(!user)return null;
+export async function staffRole(user,roles=['admin','gerant']){
  const sql=db();
  const rows=await sql`SELECT role FROM v2_user_roles WHERE auth_user_id=${user.id}
-   AND enabled=true AND role=ANY(${roles}::text[]) LIMIT 1`;
- if(!rows[0]){json(res,403,{error:'Accès professionnel interdit'});return null}
- return {...user,role:rows[0].role};
+    AND enabled=true AND role=ANY(${roles}::text[]) LIMIT 1`;
+ return rows[0]?.role||null;
+}
+export async function requireStaff(req,res,roles=['admin','gerant']){
+ const user=await requireUser(req,res);if(!user)return null;
+ const role=await staffRole(user,roles);
+ if(!role){json(res,403,{error:'Accès professionnel interdit'});return null}
+ return {...user,role};
 }
 export function validWriteOrigin(req,res){
  const origin=req.headers.origin;
