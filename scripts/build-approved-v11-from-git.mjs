@@ -107,3 +107,31 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  content=content.replaceAll('Pull torsadé col camionneur','Pull quarter-zip torsadé');
  await fs.writeFile(target,content);
 }
+
+
+// Live catalogue toggle: retain V1 layout, but never sell mock items.
+// JS functions continue using the same product renderer; only its backing array changes.
+{
+ let live=await fs.readFile(appFile,'utf8');
+ const productsMarker=".concat(get('customProducts',[]))";
+ if(!live.includes(productsMarker))throw Error('Approved products renderer changed: review required');
+ live=live.replace(productsMarker,".concat(window.JORSEN_LIVE_MODE?[]:get('customProducts',[]))");
+ const endpointMarker='\nrender();\n})();';
+ if(!live.includes(endpointMarker))throw Error('Approved app closing marker not found');
+ live=live.replace(endpointMarker,[
+ '\nwindow.JORSEN_SET_LIVE_CATALOGUE = function(items){',
+ " if(!Array.isArray(items))return;",
+ " window.JORSEN_LIVE_MODE=true;window.JORSEN_CATALOG=items;",
+ " BASE.splice(0,BASE.length,...items);",
+ " overrides={};cart=[];put('cart',[]);",
+ " render();",
+ "};",
+ endpointMarker
+ ].join('\n'));
+ // V2 published Neon products carry full Cloudinary URLs; return them as-is.
+ live=live.replace('return ROOT+path;',[
+ " if(typeof path==='string' && /^https:\\/\\/res\\.cloudinary\\.com\\/jrgtsxkt\\/image\\/upload\\//.test(path))return path;",
+ ' return ROOT+path;'
+ ].join('\n'));
+ await fs.writeFile(appFile,live,'utf8');
+}
