@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   try {
     const sql=neon(process.env.DATABASE_URL);
     const rows=await sql`
-      SELECT p.id,p.name,p.category,p.description,p.price_fc,p.tag,p.sizes,p.prices_confirmed,
+      SELECT p.id,p.name,p.category,p.description,p.price_fc,p.tag,p.sizes,
         COALESCE(json_agg(json_build_object('id',v.id,'color',v.color,'images',v.images)
           ORDER BY v.id) FILTER (WHERE v.id IS NOT NULL),'[]'::json) AS variants
       FROM products p LEFT JOIN product_variants v ON v.product_id=p.id
@@ -16,8 +16,7 @@ export default async function handler(req, res) {
     `;
     return res.status(200).json({products:rows.map(r=>({
       id:r.id,name:r.name,category:r.category,description:r.description,
-      price:Number(r.price_fc),priceConfirmed:r.prices_confirmed===true,
-      provisionalPrice:r.prices_confirmed!==true,tag:r.tag,sizes:r.sizes,variants:r.variants
+      price:Number(r.price_fc),tag:r.tag,sizes:r.sizes,variants:r.variants
     }))});
   }catch(e){
     console.error("[Jorsenshop products]",e?.name||"DatabaseError");
