@@ -32,8 +32,8 @@ for(const [name,hash] of Object.entries(files)){
 console.log('Restored original approved V1.1 layout: 10 files verified against original archive SHA-256.');
 
 // Route approved interface media through Cloudinary WITHOUT redesigning its markup.
-// All clothing images except 098.webp are in the separate jrgtsxkt Cloudinary account.
-// Image 098 remains accessible on the verified immutable original production deployment.
+// All 278 product photos are now in the dedicated jrgtsxkt Cloudinary account.
+// Image 098 is restored to the same dedicated Cloudinary account.
 const appFile=path.join('site','app.js');
 let app=await fs.readFile(appFile,'utf8');
 const originalAsset="const asset = path => ROOT + path;";
@@ -41,8 +41,8 @@ if(!app.includes(originalAsset))throw Error('Cannot locate the original approved
 const cdn=[
   "const asset = path => {",
   " const m = typeof path === 'string' && path.match(/^assets\\/products\\/([0-9]{3})\\.webp$/);",
-  " if(m && m[1]==='098')return 'https://jorsenshop-pls116hxl-nks16.vercel.app/assets/products/098.webp';",
-  " if(m)return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,c_limit,w_1200/jorsenshop/catalog/'+m[1]+'.webp';",
+  " if(m && m[1]==='098')return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,c_limit,w_1600/jorsenshop/catalog/098.webp';",
+  " if(m)return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,c_limit,w_1600/jorsenshop/catalog/'+m[1]+'.webp';",
   " if(path==='assets/logo-jorsenshop.png')return 'https://res.cloudinary.com/jrgtsxkt/image/upload/f_auto,q_auto,w_480/jorsenshop/branding/logo-jorsenshop.png';",
   " if(/^assets\\/videos\\/look-[12]\\.mp4$/.test(path))return 'https://res.cloudinary.com/jrgtsxkt/video/upload/q_auto/jorsenshop/lookbook/'+path.split('/').pop();",
   " return ROOT+path;",
@@ -50,7 +50,7 @@ const cdn=[
 ].join('\n');
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
-console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
+console.log('Media configured: all 278 product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
 
 
 // LIVREUR V1.1 ONLY: retain the approved UI for public/admin/investor roles.
@@ -74,3 +74,15 @@ if(!(await fs.stat(path.join('site','driver-v11.js')).catch(()=>null))) throw Er
 driverHtml = driverHtml.replace(courierScriptTag, courierScriptTag + '\n <script defer src="../../driver-v11.js"></script>');
 await fs.writeFile(driverHtmlPath,driverHtml,'utf8');
 console.log('Courrier preview: customer name, phone, address, instructions, assigned missions per demo driver. No production customer data.');
+
+
+// V2 progressive enhancement: keep the approved V1.1 visual shell unchanged.
+// The auth/shipping feature layer activates only when the V2 API is configured.
+const publicHtmlPath=path.join('site','index.html');
+let publicHtml=await fs.readFile(publicHtmlPath,'utf8');
+const clientTag='<script defer src="/v2-client.js"></script>';
+if(!publicHtml.includes(clientTag)){
+  if(!/<\/body>/i.test(publicHtml))throw Error('Original public HTML missing body close');
+  publicHtml=publicHtml.replace(/<\/body>/i,clientTag+'\n</body>');
+  await fs.writeFile(publicHtmlPath,publicHtml);
+}
