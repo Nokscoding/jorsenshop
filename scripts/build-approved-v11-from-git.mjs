@@ -51,3 +51,26 @@ const cdn=[
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
 console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
+
+
+// LIVREUR V1.1 ONLY: retain the approved UI for public/admin/investor roles.
+// Filter mock missions to the selected demo driver; V2 must use authenticated identity.
+const driverScope = "const assigned=orders.filter(o=>o.driver);const active=";
+const driverScopeNew = "const assigned=orders.filter(o=>o.driver===get('demoCurrentDriver','Livreur démo'));const active=";
+const driverBegin = app.indexOf("function driver(tab){");
+const driverEnd = app.indexOf("function chatView(",driverBegin);
+if(driverBegin < 0 || driverEnd <= driverBegin) throw Error("Approved courier controller not found");
+const driverBlock = app.slice(driverBegin,driverEnd);
+if(!driverBlock.includes(driverScope)) throw Error("Approved courier assignment marker not found");
+app = app.slice(0,driverBegin) + driverBlock.replace(driverScope,driverScopeNew) + app.slice(driverEnd);
+await fs.writeFile(appFile,app,'utf8');
+
+// Only the courier HTML loads the extension. The three approved interfaces are untouched.
+const driverHtmlPath = path.join('site','s/l6q8/index.html');
+let driverHtml = await fs.readFile(driverHtmlPath,'utf8');
+const courierScriptTag = '<script src="../../app.js"></script>';
+if(!driverHtml.includes(courierScriptTag)) throw Error("Approved courier HTML script tag not found");
+if(!(await fs.stat(path.join('site','driver-v11.js')).catch(()=>null))) throw Error("Missing courier extension");
+driverHtml = driverHtml.replace(courierScriptTag, courierScriptTag + '\n <script defer src="../../driver-v11.js"></script>');
+await fs.writeFile(driverHtmlPath,driverHtml,'utf8');
+console.log('Courrier preview: customer name, phone, address, instructions, assigned missions per demo driver. No production customer data.');
