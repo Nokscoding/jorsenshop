@@ -6,7 +6,9 @@ Mise à jour : 12 octobre 2026. **Cette branche est en développement, pas une p
 
 - Boutique indépendante à gérant unique, pas une marketplace ni vendeurs tiers.
 - Conserver le design V1.1 des 4 interfaces : boutique, gérant, investisseur et livreur.
-- Clients : choix de ville, création de compte email/mot de passe, historique et chat.
+- Clients : choix de ville OBLIGATOIRE avant consultation de la boutique ; compte email/mot de passe FACULTATIF. Tous peuvent parcourir, remplir le panier et commander comme invité.
+- Invités : coordonnées de réception à chaque commande ; reçu avec numéro et jeton confidentiel pour suivre la commande et écrire au gérant depuis le même navigateur.
+- Clients inscrits : historique lié au compte et retrouvé sur plusieurs appareils ; les reçus invités ne sont pas transférés automatiquement à un compte.
 - Professionnels : Neon Auth et rôle attribué explicitement, sans promotion automatique d'un client.
 - Lubumbashi : normale 7 000 FC ou express 15 000 FC, règlement à réception.
 - Likasi, Fungurume, Kolwezi : expédition 10 000 FC, règlement Airtel Money ou Orange Money **avant achat/emballage/expédition** via KKS ou NGOKAF.
@@ -47,8 +49,8 @@ Inscrire d'abord le premier administrateur sur Neon Auth ; puis lui attribuer ma
 
 1. Recevoir du gérant les numéros Airtel Money/Orange Money et le bénéficiaire exact pour les paiements préalables.
 2. Prix et stocks réels : 73 produits actuellement en brouillon, aucun prix confirmé, aucun stock validé. Les publier individuellement après vérification.
-3. Tester les cookies de Neon Auth et la connexion Vercel dans un environnement de test.
-4. Tester l'inscription, les permissions, commandes, notifications, messagerie, paiements et expéditions sur iPhone/PC.
+3. Tester les cookies Neon Auth et Vercel pour les comptes volontaires et professionnels ; confirmer surtout qu'aucun compte n'est requis pour accéder à la boutique ni pour acheter.
+4. Tester le choix obligatoire des 4 villes, l'achat invité, le reçu privé, la messagerie invitée, l'inscription facultative, les permissions, les paiements, les notifications et les livraisons sur iPhone/PC.
 5. Mettre en place les notifications push si des alertes sont voulues lorsque le site est fermé (à ce stade notifications persistantes + vérification périodique en application).
 6. Compléter la réinitialisation de mot de passe, les retours/annulations, les remises d'argent des livreurs et leur rapprochement.
 7. Revoir la sécurité, préparer migration 005–007 vers production après validation et tester rollback.
