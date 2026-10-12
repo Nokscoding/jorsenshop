@@ -210,3 +210,223 @@ function checkoutMarkup(){
  return root('Finaliser ma commande','Vérifiez vos coordonnées et votre panier avant de confirmer.',
   '<div class="j2-checkout-layout">'+form+summary+'</div>');
 }
+
+function cityModal(){
+ let el=$('#j2-city-modal');
+ if(!el){el=document.createElement('div');el.id='j2-city-modal';el.className='j2-city-modal';document.body.append(el);}
+ const selected=state.city&&state.cities.some(c=>c.id===state.city);
+ el.innerHTML='<section class="j2-city-dialog" role="dialog" aria-modal="true" aria-labelledby="j2-city-title">'+
+ '<div class="j2-city-brand">Jorsen<span>shop</span></div><div class="j2-eyebrow">BIENVENUE SUR JORSENSHOP</div>'+
+ '<h2 id="j2-city-title">Où souhaitez-vous être livré ?</h2>'+
+ '<p>Choisissez votre ville pour découvrir les produits et les frais de livraison.</p>'+
+ '<div class="j2-cities">'+state.cities.map(c=>'<button class="j2-city-option '+(state.city===c.id?'selected':'')+
+ '" data-j2="select-city" data-city="'+esc(c.id)+'"><strong>'+esc(c.name)+'</strong>'+
+ '<small>'+(c.mode==='local'?'Livraison à domicile':'Expédition par agence')+'</small></button>').join('')+'</div>'+
+ '<button class="j2-primary j2-full" data-j2="city-continue" '+(selected?'':'disabled')+'>Accéder à la boutique</button></section>';
+}
+async function updateProfile(updates={}){
+ if(!state.user)return;
+ const values={city:state.city,name:state.profile?.full_name||state.user.name||'',
+  phone:state.profile?.phone||'',address:state.profile?.address||'',...updates};
+ await send('/api/v2/me',{method:'POST',body:JSON.stringify(values)});
+ state.profile={...state.profile,full_name:values.name,city_code:values.city,phone:values.phone,address:values.address};
+}
+function closeCity(){
+ $('#j2-city-modal')?.remove();
+ if(state.user)updateProfile().catch(()=>{});
+ renderNow();
+}
+async function refreshNotifications(showAlert=false){
+ if(!state.user)return;
+ try{
+  const x=await send('/api/v2/notifications');
+  const previous=state.unread;
+  state.notifications=Array.isArray(x.notifications)?x.notifications:[];
+  state.unread=Number(x.unread)||0;
+  if(showAlert&&state.unread>previous){
+   toast('Vous avez une nouvelle notification JorsenShop.');
+   if(typeof Notification!=='undefined'&&Notification.permission==='granted'&&!document.hidden)
+    new Notification('JorsenShop',{body:'Une nouvelle activité sur votre commande'});
+  }
+  if(location.hash.includes('/compte'))renderNow();
+ }catch{}
+}
+async function refreshOrders(shouldRender=true){
+ if(!state.user)return;
+ try{
+  const [orders,me]=await Promise.all([send('/api/v2/orders'),send('/api/v2/me')]);
+  state.orders=Array.isArray(orders.orders)?orders.orders:[];
+  state.profile=me.profile||state.profile;
+  if(shouldRender&&location.hash.includes('compte'))renderNow();
+ }catch(e){toast('Historique momentanément indisponible.',true);}
+}
+async function loadCatalogue(){
+ try{
+  const r=await send('/api/products');
+  if(typeof window.JORSEN_SET_LIVE_CATALOGUE==='function')
+   window.JORSEN_SET_LIVE_CATALOGUE(Array.isArray(r.products)?r.products:[]);
+ }catch(e){
+  if(typeof window.JORSEN_SET_LIVE_CATALOGUE==='function')window.JORSEN_SET_LIVE_CATALOGUE([]);
+  toast('Catalogue momentanément indisponible.',true);
+ }
+}
+async function init(){
+ try{
+  const r=await send('/api/v2/cities');state.cities=r.cities||[];
+  if(!state.cities.length)throw Error('Aucune ville disponible');
+  try{
+   const session=await send('/api/v2/auth?action=session');
+   state.user=session.authenticated?session.user:null;
+  }catch{state.user=null}
+  state.ready=true;
+  if(state.user)await Promise.allSettled([refreshOrders(false),refreshNotifications(false)]);
+  await loadCatalogue();renderNow();
+  if(!state.cities.some(c=>c.id===state.city)){
+   state.city='';localStorage.removeItem(STORAGE_CITY);cityModal();
+  }
+ }catch(e){state.ready=true;renderNow();toast('Impossible de charger JorsenShop. Actualisez la page.',true);}
+}
+function closeChat(){
+ state.openChat=null;clearInterval(state.chatTimer);state.chatTimer=null;$('#j2-chat-modal')?.remove();
+}
+function openChat(number){
+ if(!state.user){go('compte/connexion');return}
+ if(!state.orders.some(o=>o.order_number===number)){toast('Commande introuvable.',true);return}
+ closeChat();state.openChat=number;
+ const box=document.createElement('div');box.id='j2-chat-modal';box.className='j2-chat-modal';
+ box.innerHTML='<section class="j2-chat-dialog" role="dialog" aria-modal="true" aria-label="Conversation sur la commande">'+
+ '<div class="j2-title-row"><div><div class="j2-eyebrow">CONVERSATION PRIVÉE</div><h2>'+esc(number)+'</h2></div>'+
+ '<button class="j2-chat-close" data-j2="close-chat" aria-label="Fermer la conversation">×</button></div>'+
+ '<div class="j2-chat-feed" id="j2-chat-feed"><p>Chargement des messages…</p></div>'+
+ '<form data-j2-form="chat" class="j2-chat-compose"><input name="message" maxlength="2000" required placeholder="Votre message au gérant">'+
+ '<button class="j2-primary" type="submit">Envoyer</button></form></section>';
+ document.body.append(box);
+ const refresh=async()=>{
+  if(state.openChat!==number)return;
+  try{
+   const r=await send('/api/v2/chat?orderNumber='+encodeURIComponent(number));
+   const el=$('#j2-chat-feed',box);if(!el)return;
+   el.innerHTML=(r.messages||[]).length?r.messages.map(m=>
+    '<div class="j2-chat-bubble '+(m.isMine?'mine':'theirs')+'"><p>'+esc(m.message)+'</p>'+
+    '<small>'+esc(new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))+'</small></div>').join(''):
+    '<p class="j2-chat-empty">La conversation est ouverte. Envoyez votre premier message.</p>';
+   el.scrollTop=el.scrollHeight;
+  }catch(e){const el=$('#j2-chat-feed',box);if(el)el.textContent=e.message;}
+ };
+ refresh();state.chatTimer=setInterval(refresh,9000);
+}
+async function handleAuth(form){
+ if(state.busy)return;
+ const fd=new FormData(form),kind=form.dataset.kind;
+ const payload={email:String(fd.get('email')||'').trim(),password:String(fd.get('password')||'')};
+ if(kind==='signup')payload.name=String(fd.get('name')||'').trim();
+ state.busy=true;state.authError='';
+ try{
+  await send('/api/v2/auth?action='+kind,{method:'POST',body:JSON.stringify(payload)});
+  let session=await send('/api/v2/auth?action=session');
+  if(!session.authenticated&&kind==='signup'){
+   await send('/api/v2/auth?action=login',{method:'POST',body:JSON.stringify(payload)});
+   session=await send('/api/v2/auth?action=session');
+  }
+  if(!session.authenticated)throw Error('Connexion non confirmée. Réessayez.');
+  state.user=session.user;
+  if(kind==='signup')await updateProfile({name:payload.name});
+  await Promise.allSettled([refreshOrders(false),refreshNotifications(false)]);
+  toast('Bienvenue sur JorsenShop !');
+  go(state.afterAuth?'commander':'compte/accueil');state.afterAuth=false;
+ }catch(e){state.authError=e.message;renderNow();}
+ finally{state.busy=false;renderNow();}
+}
+async function handleCheckout(form){
+ if(state.busy)return;
+ if(!state.user){state.afterAuth=true;go('compte/connexion');return;}
+ const rows=cartLines();if(!rows.length){toast('Votre panier est vide.',true);return;}
+ const fd=new FormData(form),mode=String(fd.get('mode')||state.paymentMode);
+ const key=localStorage.getItem(REQUEST_KEY)||
+  (crypto.randomUUID?crypto.randomUUID().replaceAll('-',''):String(Date.now())+'order'+Math.random().toString(36).slice(2));
+ localStorage.setItem(REQUEST_KEY,key);
+ const payload={customerName:String(fd.get('name')||'').trim(),
+   phone:String(fd.get('phone')||'').trim(),address:String(fd.get('address')||'').trim(),
+   city:state.city,mode,notes:String(fd.get('notes')||'').trim(),
+   paymentProvider:fd.get('paymentProvider')||null,idempotencyKey:key,
+   items:rows.map(x=>({variantId:x.variant.id,size:x.size,quantity:x.quantity}))};
+ state.busy=true;state.orderError='';
+ try{
+  const result=await send('/api/v2/orders',{method:'POST',body:JSON.stringify(payload)});
+  localStorage.removeItem(REQUEST_KEY);
+  if(typeof window.JORSEN_CLEAR_CART==='function')window.JORSEN_CLEAR_CART();
+  await Promise.allSettled([refreshOrders(false),refreshNotifications(false)]);
+  toast('Commande '+result.orderNumber+' enregistrée !');
+  go('compte/commandes');
+ }catch(e){state.orderError=e.message;toast(e.message,true);}
+ finally{state.busy=false;renderNow();}
+}
+document.addEventListener('click',async e=>{
+ const el=e.target.closest('[data-j2]');if(!el)return;
+ const action=el.dataset.j2;
+ e.preventDefault();
+ if(action==='city')cityModal();
+ else if(action==='select-city'){state.city=el.dataset.city;localStorage.setItem(STORAGE_CITY,state.city);cityModal();}
+ else if(action==='city-continue'){if(state.city)closeCity();}
+ else if(action==='login'||action==='register'){
+  state.authError='';
+  if(location.hash.includes('commander'))state.afterAuth=true;
+  go('compte/'+(action==='login'?'connexion':'inscription'));
+ }else if(action==='logout'){
+  try{await send('/api/v2/auth?action=logout',{method:'POST',body:'{}'});}
+  catch(err){toast(err.message,true);return}
+  state.user=null;state.profile=null;state.orders=[];state.notifications=[];state.unread=0;
+  state.afterAuth=false;go('compte/accueil');
+ }else if(action==='chat')openChat(el.dataset.order);
+ else if(action==='close-chat')closeChat();
+ else if(action==='read'){
+  try{await send('/api/v2/notifications',{method:'POST',body:JSON.stringify({id:el.dataset.id})});
+   await refreshNotifications(false);
+  }catch(err){toast(err.message,true)}
+ }else if(action==='allow-notifications'&&typeof Notification!=='undefined'){
+  try{const result=await Notification.requestPermission();
+   toast(result==='granted'?'Alertes activées':'Les notifications restent dans votre compte.');renderNow();
+  }catch{}
+ }
+});
+document.addEventListener('submit',async e=>{
+ const form=e.target;if(!form?.matches('[data-j2-form]'))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(form.dataset.j2Form==='auth')await handleAuth(form);
+ else if(form.dataset.j2Form==='checkout')await handleCheckout(form);
+ else if(form.dataset.j2Form==='profile'){
+  const fd=new FormData(form);
+  try{await updateProfile({name:String(fd.get('name')||''),phone:String(fd.get('phone')||''),
+   address:String(fd.get('address')||'')});toast('Profil mis à jour.');renderNow();
+  }catch(err){toast(err.message,true)}
+ }else if(form.dataset.j2Form==='chat'){
+  const number=state.openChat,message=String(new FormData(form).get('message')||'').trim();
+  if(!number||!message)return;
+  try{await send('/api/v2/chat',{method:'POST',body:JSON.stringify({orderNumber:number,message})});
+   form.reset();closeChat();openChat(number);
+  }catch(err){toast(err.message,true)}
+ }
+},true);
+document.addEventListener('change',e=>{
+ if(e.target?.id==='j2-delivery-mode'){state.paymentMode=e.target.value;renderNow()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.openChat)closeChat()});
+window.addEventListener('hashchange',()=>{
+ if(!state.user)return;
+ if(/^#\/compte\/(commandes|messages|accueil)/.test(location.hash)||location.hash==='#/compte')
+  Promise.allSettled([refreshOrders(false),refreshNotifications(false)]).then(()=>renderNow());
+ else if(location.hash.includes('compte/notifications'))refreshNotifications(false);
+});
+window.JORSEN_V2_ACCOUNT_RENDER=accountMarkup;
+window.JORSEN_V2_CHECKOUT_RENDER=checkoutMarkup;
+init();
+setInterval(()=>{if(!document.hidden&&state.user)refreshNotifications(true)},30000);
+document.addEventListener('error',event=>{
+ const img=event.target;if(!(img instanceof HTMLImageElement)||img.dataset.j2Error)return;
+ img.dataset.j2Error='1';const src=img.currentSrc||img.src;
+ if(src.includes('res.cloudinary.com')&&src.includes('/f_auto,')){
+  img.src=src.replace(/\/f_auto,[^/]+\//,'/');return;
+ }
+ img.style.objectFit='contain';img.alt='Photo indisponible';
+},true);
+})();
