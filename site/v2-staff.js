@@ -126,7 +126,7 @@ function adminHTML(){
   '<button class="jsv2-btn" type="submit">Ajouter comme brouillon</button></form>'+
   '<h2>Catalogue ('+products.length+')</h2><div class="jsv2-table-wrap"><table class="jsv2-table"><thead><tr><th>Article</th><th>Catégorie</th><th>Prix</th><th>État</th><th>Action</th></tr></thead><tbody>'+
   products.map(p=>'<tr><td>'+h(p.name)+'</td><td>'+h(p.category)+'</td><td>'+money(p.priceFc)+'</td><td>'+
-   (p.is_published?'Publié':'Brouillon')+'</td><td>'+button('edit-product',p.id,'Modifier')+'</td></tr>').join('')+
+   (p.is_published?'Visible':'Masqué')+'</td><td>'+button('edit-product',p.id,'Modifier')+' '+button('edit-stock',p.id,'Stock')+' '+button('toggle-publication',p.id,p.is_published?'Masquer':'Publier')+'</td></tr>').join('')+
   '</tbody></table></div>',nav);
  if(tab==='equipe')return frame('<h2>Accès professionnels</h2><p class="jsv2-note">Les employés doivent posséder un compte avant attribution de rôle. Aucun rôle ne peut être attribué par le client lui-même.</p>'+
   '<form id="jsv2-role-form" class="jsv2-form"><label>E-mail collaborateur<input type="email" name="email" required></label>'+
@@ -259,10 +259,33 @@ document.addEventListener('click',async e=>{
    const category=prompt('Catégorie',p.category);if(!category)return;
    const priceFc=Number(prompt('Prix FC',p.priceFc));if(!Number.isSafeInteger(priceFc))return;
    const description=prompt('Description',p.description||'');if(description===null)return;
-   const publish=confirm('Publier cet article ? Annuler le laisse en brouillon.');
    await api('admin/catalogue',{method:'POST',body:JSON.stringify({
-    action:'update-metadata',id,name,category,priceFc,description,
-    pricesConfirmed:publish,isPublished:publish
+    action:'update-metadata',id,name,category,priceFc,description
+   })});
+  }else if(a==='edit-stock'){
+   const p=(data.products||[]).find(p=>p.id===id);if(!p)return;
+   const variants=(p.variants||[]);
+   if(!variants.length)throw Error('Ce produit ne possède aucune variante');
+   const selection=prompt('Variante à modifier :\n'+variants.map((v,i)=>(i+1)+'. '+v.color).join('\n'),'1');
+   if(selection===null)return;
+   const variant=variants[Number(selection)-1];
+   if(!variant)throw Error('Choisissez un numéro de variante valide');
+   const sizes=Array.isArray(p.sizes)?p.sizes:[],
+    chosen=prompt('Taille : '+sizes.join(', '),sizes[0]||'M');
+   if(chosen===null)return;
+   const current=variant.stock?.[chosen]||0;
+   const input=prompt('Stock disponible ('+chosen+')',String(current));
+   if(input===null)return;
+   const quantity=Number(input);
+   if(!Number.isSafeInteger(quantity)||quantity<0||quantity>100000)
+    throw Error('La quantité doit être un entier positif');
+   await api('admin/catalogue',{method:'POST',body:JSON.stringify({
+    action:'set-stock',id,variantId:variant.id,size:chosen,quantity
+   })});
+  }else if(a==='toggle-publication'){
+   const p=(data.products||[]).find(p=>p.id===id);if(!p)return;
+   await api('admin/catalogue',{method:'POST',body:JSON.stringify({
+     action:'set-publication',id,publish:!p.is_published
    })});
   }else if(a==='set-status'||a==='prepare'||a==='cancel'){
    const status=a==='set-status'?'confirmee':a==='prepare'?'en_preparation':'annulee';
@@ -318,7 +341,7 @@ document.addEventListener('submit',async e=>{
     priceFc:Number(values.priceFc),description:values.description,sizes,
     variants:[{color:values.color,images,stock}],isPublished:false,pricesConfirmed:false
    })});
-   notice('Produit enregistré comme brouillon. Vérifiez le stock et le prix avant publication.');
+   notice('Produit ajouté. Vous pouvez modifier son prix et son stock à tout moment.');
    f.reset();await load();
   }catch(err){notice(err.message)}
  }
