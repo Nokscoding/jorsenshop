@@ -71,7 +71,7 @@ let driverHtml = await fs.readFile(driverHtmlPath,'utf8');
 const courierScriptTag = '<script src="../../app.js"></script>';
 if(!driverHtml.includes(courierScriptTag)) throw Error("Approved courier HTML script tag not found");
 if(!(await fs.stat(path.join('site','driver-v11.js')).catch(()=>null))) throw Error("Missing courier extension");
-driverHtml = driverHtml.replace(courierScriptTag, courierScriptTag + '\n <script defer src="../../driver-v11.js"></script>');
+// V2 only: do not inject the old courier demo enhancer.
 await fs.writeFile(driverHtmlPath,driverHtml,'utf8');
 console.log('Courrier preview: customer name, phone, address, instructions, assigned missions per demo driver. No production customer data.');
 
@@ -113,7 +113,7 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
 // JS functions continue using the same product renderer; only its backing array changes.
 {
  let live=await fs.readFile(appFile,'utf8');
- const v2Hooks=[["function account(tab){","function account(tab){if(typeof window.JORSEN_V2_ACCOUNT_RENDER==='function')return window.JORSEN_V2_ACCOUNT_RENDER(tab||'accueil');return '<main class=\"j2-page\">Chargement du compte…</main>';"],["function checkout(){","function checkout(){if(typeof window.JORSEN_V2_CHECKOUT_RENDER==='function')return window.JORSEN_V2_CHECKOUT_RENDER();return '<main class=\"j2-page\">Chargement de la commande…</main>';"]];
+ const v2Hooks=[["function account(tab){","function account(tab){if(typeof window.JORSEN_V2_ACCOUNT_RENDER==='function')return window.JORSEN_V2_ACCOUNT_RENDER(tab||'accueil');return '<main class=\"j2-page\">Chargement du compte…</main>';"],["function checkout(){","function checkout(){if(typeof window.JORSEN_V2_CHECKOUT_RENDER==='function')return window.JORSEN_V2_CHECKOUT_RENDER();return '<main class=\"j2-page\">Chargement de la commande…</main>';"],["function admin(tab){","function admin(tab){if(PORTAL==='admin')return '<main class=\"jsv2-secure\">Espace gérant sécurisé — Connexion requise</main>';"],["function investor(tab){","function investor(tab){if(PORTAL==='investisseur')return '<main class=\"jsv2-secure\">Espace investisseur sécurisé — Connexion requise</main>';"],["function driver(tab){","function driver(tab){if(PORTAL==='livreur')return '<main class=\"jsv2-secure\">Espace livreur sécurisé — Connexion requise</main>';"]];
  for(const [before,after] of v2Hooks){
   if(!live.includes(before))throw Error('V1.1 UI hook not found: '+before);
   live=live.replace(before,after);
@@ -138,6 +138,7 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  "};",
  endpointMarker
  ].join('\n'));
+ live=live.replaceAll('Maquette locale sans connexion ni protection d’accès — données fictives.', 'Espace professionnel sécurisé');
  // Replace V1.1 demo-only customer copy without altering the approved interface layout.
  // Prices can be modified by the manager; do not advertise fictional checkout flows.
  const customerCopy=[
