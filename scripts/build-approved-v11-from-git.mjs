@@ -86,3 +86,24 @@ if(!publicHtml.includes(clientTag)){
   publicHtml=publicHtml.replace(/<\/body>/i,clientTag+'\n</body>');
   await fs.writeFile(publicHtmlPath,publicHtml);
 }
+
+
+// The three professional spaces keep their original URL, header, brand and styles.
+// Load the protected V2 data interface after the original markup; no demo transaction is promoted.
+for(const rel of ['s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html']){
+ const target=path.join('site',rel);
+ let html=await fs.readFile(target,'utf8');
+ if(!/<\/body>/i.test(html))throw Error('Staff HTML structure missing: '+rel);
+ const script='<script defer src="../../v2-staff.js"></script>';
+ if(!html.includes(script)){
+  html=html.replace(/<\/body>/i,script+'\n</body>');
+  await fs.writeFile(target,html);
+ }
+}
+// Use the familiar commercial name without changing the already-approved layout.
+for(const rel of ['catalogue.js','catalogue.json','app.js']){
+ const target=path.join('site',rel);
+ let content=await fs.readFile(target,'utf8');
+ content=content.replaceAll('Pull torsadé col camionneur','Pull quarter-zip torsadé');
+ await fs.writeFile(target,content);
+}
