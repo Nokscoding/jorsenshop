@@ -48,16 +48,41 @@ export default async function handler(req,res){
     return json(res,400,{error:'Fiche produit invalide'});
   const cats=await sql`SELECT 1 FROM v2_categories WHERE name=${category} AND active=true`;
   if(!cats.length)return json(res,400,{error:'Catégorie inexistante'});
-  const wantsPublished=b.isPublished===true && b.pricesConfirmed===true;
-  if(wantsPublished){
-    const available=await sql`SELECT 1 FROM product_variants v JOIN variant_stock st ON st.variant_id=v.id
-      WHERE v.product_id=${id} AND st.quantity>0 LIMIT 1`;
-    if(!available.length)return json(res,409,{error:'Ajoutez du stock avant de publier'});
-  }
+  // Editing a price/name must never depend on stock or a separate price approval.
+  // Publishing is a separate manager action; keep the existing publication state.
   const rows=await sql`UPDATE products SET name=${name},category=${category},description=${description},
-    price_fc=${priceFc},is_published=${wantsPublished},prices_confirmed=${b.pricesConfirmed===true},
+    price_fc=${priceFc},
     updated_at=now() WHERE id=${id} RETURNING id`;
   return json(res,rows.length?200:404,{ok:!!rows.length,id});
+ }
+ if(b.action==='set-stock'){
+  const id=String(b.id||''),variantId=String(b.variantId||''),size=String(b.size||'').trim(),
+    quantity=Number(b.quantity);
+  if(!/^js-[a-zA-Z0-9_-]{3,64}$/.test(id) ||
+     !/^js-[a-zA-Z0-9_-]{3,64}-v[a-zA-Z0-9_-]+$/.test(variantId) ||
+     !/^[a-zA-Z0-9 -]{1,16}$/.test(size) || !Number.isSafeInteger(quantity) ||
+     quantity<0 || quantity>100000)
+    return json(res,400,{error:'Stock incorrect'});
+  const variants=await sql`SELECT id FROM product_variants WHERE id=${variantId} AND product_id=${id}`;
+  if(!variants.length)return json(res,404,{error:'Variante inexistante'});
+  const rows=await sql`INSERT INTO variant_stock(variant_id,size,quantity)
+    VALUES(${variantId},${size},${quantity})
+    ON CONFLICT(variant_id,size) DO UPDATE SET quantity=EXCLUDED.quantity
+    WHERE variant_stock.reserved<=EXCLUDED.quantity RETURNING quantity`;
+  if(!rows.length)return json(res,409,{error:'Stock inférieur aux quantités réservées'});
+  return json(res,200,{ok:true,quantity:Number(rows[0].quantity)});
+ }
+ if(b.action==='set-publication'){
+  const id=String(b.id||''),publish=b.publish===true;
+  if(!/^js-[a-zA-Z0-9_-]{3,64}$/.test(id))return json(res,400,{error:'Article incorrect'});
+  if(publish){
+   const available=await sql`SELECT 1 FROM product_variants v JOIN variant_stock st ON st.variant_id=v.id
+      WHERE v.product_id=${id} AND st.quantity>st.reserved LIMIT 1`;
+   if(!available.length)return json(res,409,{error:'Un stock disponible est nécessaire pour ouvrir les commandes'});
+  }
+  const result=await sql`UPDATE products SET is_published=${publish},updated_at=now()
+   WHERE id=${id} RETURNING id`;
+  return json(res,result.length?200:404,{ok:!!result.length,id,published:publish});
  }
  if(b.action==='save-product'){
   const name=String(b.name||'').trim(),category=String(b.category||'').trim();
@@ -87,7 +112,7 @@ export default async function handler(req,res){
    id,name,category,description:String(b.description||'').trim().slice(0,3000),
    priceFc,tag:String(b.tag||'').slice(0,100),
    sizes:(Array.isArray(b.sizes)?b.sizes:[]).filter(s=>/^[a-zA-Z0-9 -]{1,16}$/.test(s)).slice(0,30),
-   pricesConfirmed:b.pricesConfirmed===true,isPublished:b.isPublished===true,variants:safe
+   pricesConfirmed:false,isPublished:b.isPublished===true,variants:safe
   };
   try{
    const rows=await sql`SELECT staff_save_product(${JSON.stringify(payload)}::jsonb) AS id`;
