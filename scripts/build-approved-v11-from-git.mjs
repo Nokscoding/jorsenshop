@@ -122,6 +122,8 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  '\nwindow.JORSEN_SET_LIVE_CATALOGUE = function(items){',
  " if(!Array.isArray(items))return;",
  " window.JORSEN_LIVE_MODE=true;window.JORSEN_CATALOG=items;",
+ " window.JORSEN_CART_ITEMS = function(){return cart.map(x=>({...x}));};",
+ " window.JORSEN_CLEAR_CART = function(){cart=[];put('cart',[]);render();};",
  " BASE.splice(0,BASE.length,...items);",
  " overrides={};cart=[];put('cart',[]);",
  " render();",
