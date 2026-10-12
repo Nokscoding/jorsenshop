@@ -40,13 +40,8 @@ export default async function handler(req,res){
  const tokenHash=crypto.createHash('sha256').update(trackingToken).digest('hex');
  try{
   const rows=await sql`SELECT place_v2_order(${user.id},${name},${phone},${address},${city},
-    ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode}) AS result`;
+    ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode},${quote.paymentRequiredBeforePurchase?b.paymentProvider:null}) AS result`;
   const result=rows[0].result;
-  if(quote.paymentRequiredBeforePurchase){
-   await sql`UPDATE orders SET v2_payment_provider=${b.paymentProvider}
-    WHERE order_number=${result.orderNumber} AND v2_client_auth_id=${user.id}
-      AND v2_payment_provider IS NULL`;
-  }
   return json(res,201,{...result,trackingToken:result.existing?null:trackingToken,
     instruction:quote.paymentRequiredBeforePurchase?
     'La préparation et l’expédition commenceront après vérification du paiement Mobile Money par le gérant.':
