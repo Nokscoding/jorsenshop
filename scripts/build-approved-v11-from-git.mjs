@@ -131,6 +131,18 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  "};",
  endpointMarker
  ].join('\n'));
+ // Replace V1.1 demo-only customer copy without altering the approved interface layout.
+ // Prices can be modified by the manager; do not advertise fictional checkout flows.
+ const customerCopy=[
+  ["MAQUETTE D’INTERFACE","JORSENSHOP · BOUTIQUE"],
+  ["Aucun paiement réel","Livraison selon votre ville"],
+  ["Prix d'exemple en FC","Prix en FC"],
+  ["Prix démo","Prix en FC"],
+  ["LIVRAISON À LUBUMBASHI","LIVRAISON EN RDC"],
+  ["Cette commande reste une simulation locale.","Vous pouvez commander sans créer de compte."],
+  ["Les commandes restent enregistrées uniquement dans ce navigateur.","Consultez les informations de vos commandes ci-dessous."]
+ ];
+ for(const [from,to] of customerCopy)live=live.replaceAll(from,to);
  // V2 published Neon products carry full Cloudinary URLs; return them as-is.
  live=live.replace('return ROOT+path;',[
  " if(typeof path==='string' && /^https:\\/\\/res\\.cloudinary\\.com\\/jrgtsxkt\\/image\\/upload\\//.test(path))return path;",
