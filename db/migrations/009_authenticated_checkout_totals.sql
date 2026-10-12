@@ -1,4 +1,4 @@
--- JorsenShop V2: account required at checkout, pricing totals accurate, idempotent retry ownership.
+-- JorsenShop V2: account required at checkout, generated pricing total accurate, idempotent retry ownership.
 -- Safe function replacements; no destructive table operations.
 
 CREATE OR REPLACE FUNCTION place_guest_order(
@@ -64,7 +64,7 @@ BEGIN
     INSERT INTO order_items(order_id,product_id,variant_id,product_name,selected_color,selected_size,quantity,unit_price_fc)
       VALUES(v_order,v_product.id,v_variant.id,v_product.name,v_variant.color,v_size,v_qty,v_product.price_fc);
   END LOOP;
-  UPDATE orders SET item_subtotal_fc = v_subtotal, total_fc = v_subtotal + v_fee WHERE id = v_order;
+  UPDATE orders SET item_subtotal_fc = v_subtotal WHERE id = v_order;
   RETURN jsonb_build_object('orderNumber',v_number,'total',v_subtotal + v_fee,'existing',false);
 END;
 $$;
@@ -94,7 +94,7 @@ BEGIN
    SELECT 1 FROM orders WHERE order_number=v_number AND v2_client_auth_id=p_auth_user
      AND v2_delivery_mode=p_delivery_mode
  ) THEN RAISE EXCEPTION 'Reprise de commande non autorisée'; END IF;
- UPDATE orders SET delivery_fee_fc=v_shipping.fee_fc,total_fc=item_subtotal_fc+v_shipping.fee_fc,
+ UPDATE orders SET delivery_fee_fc=v_shipping.fee_fc,
    v2_delivery_mode=p_delivery_mode,v2_client_auth_id=p_auth_user,
    v2_payment_provider=CASE WHEN v_shipping.prepaid THEN p_payment_provider ELSE NULL END,
    payment_method=CASE WHEN v_shipping.prepaid THEN 'mobile_money' ELSE 'paiement_livraison' END
