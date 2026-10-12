@@ -80,7 +80,7 @@ console.log('Courrier preview: customer name, phone, address, instructions, assi
 // The auth/shipping feature layer activates only when the V2 API is configured.
 const publicHtmlPath=path.join('site','index.html');
 let publicHtml=await fs.readFile(publicHtmlPath,'utf8');
-const clientTag='<script defer src="/v2-client.js"></script>';
+const clientTag='<link rel="stylesheet" href="/v2-final.css"><script defer src="/v2-final.js"></script>';
 if(!publicHtml.includes(clientTag)){
   if(!/<\/body>/i.test(publicHtml))throw Error('Original public HTML missing body close');
   publicHtml=publicHtml.replace(/<\/body>/i,clientTag+'\n</body>');
@@ -113,6 +113,11 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
 // JS functions continue using the same product renderer; only its backing array changes.
 {
  let live=await fs.readFile(appFile,'utf8');
+ const v2Hooks=[["function account(tab){","function account(tab){if(typeof window.JORSEN_V2_ACCOUNT_RENDER==='function')return window.JORSEN_V2_ACCOUNT_RENDER(tab||'accueil');return '<main class=\"j2-page\">Chargement du compte…</main>';"],["function checkout(){","function checkout(){if(typeof window.JORSEN_V2_CHECKOUT_RENDER==='function')return window.JORSEN_V2_CHECKOUT_RENDER();return '<main class=\"j2-page\">Chargement de la commande…</main>';"]];
+ for(const [before,after] of v2Hooks){
+  if(!live.includes(before))throw Error('V1.1 UI hook not found: '+before);
+  live=live.replace(before,after);
+ }
  const productsMarker=".concat(get('customProducts',[]))";
  if(!live.includes(productsMarker))throw Error('Approved products renderer changed: review required');
  live=live.replace(productsMarker,".concat(window.JORSEN_LIVE_MODE?[]:get('customProducts',[]))");
@@ -123,10 +128,12 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  " if(!Array.isArray(items))return;",
  " window.JORSEN_LIVE_MODE=true;window.JORSEN_CATALOG=items;",
  " window.JORSEN_CART_ITEMS = function(){return cart.map(x=>({...x}));};",
+ " window.JORSEN_V2_RENDER=render;",
+ " window.JORSEN_V2_FAVORITES=function(){return wishlist.map(id=>byId(id)).filter(Boolean);};",
  " window.JORSEN_CLEAR_CART = function(){cart=[];put('cart',[]);render();};",
  " BASE.splice(0,BASE.length,...items);",
  " overrides={};cart=cart.filter(c=>items.some(p=>p.id===c.id && p.variants?.[c.variant]?.id));put('cart',cart);",
- " orders=[];threads={};profile={...profile,name:'Client invité',city:localStorage.getItem('jorsenshop_v2_city')||'Lubumbashi'};",
+ " // User accounts and real orders are managed by the final frontend.",
  " render();",
  "};",
  endpointMarker
