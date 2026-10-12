@@ -125,7 +125,8 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  " window.JORSEN_CART_ITEMS = function(){return cart.map(x=>({...x}));};",
  " window.JORSEN_CLEAR_CART = function(){cart=[];put('cart',[]);render();};",
  " BASE.splice(0,BASE.length,...items);",
- " overrides={};cart=[];put('cart',[]);",
+ " overrides={};cart=cart.filter(c=>items.some(p=>p.id===c.id && p.variants?.[c.variant]?.id));put('cart',cart);",
+ " orders=[];threads={};profile={...profile,name:'Client invité',city:localStorage.getItem('jorsenshop_v2_city')||'Lubumbashi'};",
  " render();",
  "};",
  endpointMarker
