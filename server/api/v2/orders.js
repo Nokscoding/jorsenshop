@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {db,json,only,rateLimit} from '../_lib/shared.js';
 import {requireUser,validWriteOrigin} from './_lib/identity.js';
-import {shippingQuote,normalizeCity} from '../../v2/shipping-policy.mjs';
+import {shippingQuote,normalizeCity} from '../../../v2/shipping-policy.mjs';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Méthode interdite'});
