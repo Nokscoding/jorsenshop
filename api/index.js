@@ -60,7 +60,7 @@ export default async function handler(req,res){
   const u=new URL(req.url||'/', 'https://jorsenshop.invalid');
   const raw=String(req.query?.route||u.searchParams.get('route')||u.pathname.replace(/^\/api\//,'')).trim();
   const target=decodeURIComponent(raw).replace(/^\/+|\/+$/g,'');
-  if(target.length>150||!(/^[a-z0-9/-]+$/i).test(target))
+  if(target.length>150||!target.split('/').every(seg=>/^[a-z0-9-]+$/i.test(seg)))
    return res.status(404).json({error:'Route inconnue'});
   const dynamic=target.startsWith('products/') && target.split('/').length===2 && target!=='products/[id]';
   const route=dynamic?'products/[id]':target;
