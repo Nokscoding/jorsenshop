@@ -72,7 +72,13 @@
    el.querySelectorAll('[data-city]').forEach(x=>x.classList.toggle('selected',x===btn));
    el.querySelector('#v2-next').disabled=false;
   });
-  el.querySelector('#v2-next').onclick=()=>showAuth('signup');
+  el.querySelector('#v2-next').onclick=async()=>{
+   if(!user)return showAuth('signup');
+   try{
+    await fetchJSON('/api/v2/me',{method:'POST',body:JSON.stringify({city})});
+    $('#v2-veil')?.remove();await loadLiveCatalogue();loadOrders();
+   }catch(err){notify(err.message)}
+  };
  }
  function showAuth(mode='signup'){
   const signup=mode==='signup';
@@ -99,11 +105,23 @@
       body:JSON.stringify({city})});
     $('#v2-veil')?.remove();
     notify('Bienvenue sur JorsenShop ! Votre ville : '+(cities.find(c=>c.id===city)?.name||city));
+    await loadLiveCatalogue();
     enhanceCheckout();
     loadOrders();
    }catch(err){error.className='v2-error';error.textContent=err.message}
    finally{button.disabled=false;}
   };
+ }
+ async function loadLiveCatalogue(){
+  try{
+   const result=await fetchJSON('/api/products');
+   const current=(result.products||[]).filter(x=>Array.isArray(x.variants)&&x.variants.length>0);
+   if(typeof window.JORSEN_SET_LIVE_CATALOGUE==='function')window.JORSEN_SET_LIVE_CATALOGUE(current);
+  }catch(e){
+   // A failed catalogue call must not expose mock items as purchasable products.
+   if(typeof window.JORSEN_SET_LIVE_CATALOGUE==='function')window.JORSEN_SET_LIVE_CATALOGUE([]);
+   notify('Catalogue momentanément indisponible : aucune commande possible.');
+  }
  }
  async function init(){
   try{
@@ -117,7 +135,7 @@
    }
    if(!cities.some(c=>c.id===city)){city='';showCities()}
    else if(!user)showAuth('signup');
-   else {enhanceCheckout();loadOrders()}
+   else {await loadLiveCatalogue();enhanceCheckout();loadOrders()}
   }catch(err){
    const el=veil('<div class="v2-kicker">JORSENSHOP V2</div><h2>Site en préparation</h2>'+
     '<p>Le service de connexion est momentanément indisponible. Aucune commande réelle ne peut être enregistrée.</p>'+
