@@ -55,12 +55,13 @@ export default async function handler(req,res){
       AND lower(delivery_city)='lubumbashi' AND v2_ready_at IS NOT NULL
       AND status='en_preparation'`;
    if(!rows.length)return json(res,409,{error:'Préparez le colis avant attribution'});
-   await sql`INSERT INTO v2_delivery_assignments(order_id,courier_auth_id,assigned_by)
+   const assigned=await sql`INSERT INTO v2_delivery_assignments(order_id,courier_auth_id,assigned_by)
       VALUES(${rows[0].id},${courier},${staff.id})
       ON CONFLICT(order_id) DO UPDATE SET courier_auth_id=EXCLUDED.courier_auth_id,
         assigned_by=EXCLUDED.assigned_by,status='assigned',assigned_at=now(),
         picked_up_at=NULL,delivered_at=NULL
-      WHERE v2_delivery_assignments.status='assigned'`;
+      WHERE v2_delivery_assignments.status='assigned' RETURNING order_id`;
+   if(!assigned.length)return json(res,409,{error:'Ce colis est déjà en cours de livraison'});
    await sql`INSERT INTO v2_notifications(user_auth_id,order_id,kind,title)
       VALUES(${courier},${rows[0].id},'delivery_assigned','Nouvelle mission : '||${number})`;
    return json(res,200,{ok:true});
@@ -75,6 +76,11 @@ export default async function handler(req,res){
        AND payment_status='payee' AND v2_ready_at IS NOT NULL
        AND status='en_preparation' RETURNING id`;
    if(!rows.length)return json(res,409,{error:'Paiement et préparation requis avant expédition'});
+   await sql`INSERT INTO v2_order_events(order_id,actor_auth_id,from_status,to_status)
+     VALUES(${rows[0].id},${staff.id},'en_preparation','expediee')`;
+   await sql`INSERT INTO v2_notifications(user_auth_id,order_id,kind,title)
+     SELECT v2_client_auth_id,id,'status_changed','Colis expédié : '||order_number
+     FROM orders WHERE id=${rows[0].id} AND v2_client_auth_id IS NOT NULL`;
    return json(res,200,{ok:true});
   }
   return json(res,400,{error:'Action inconnue'});
