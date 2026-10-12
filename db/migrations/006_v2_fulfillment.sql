@@ -48,6 +48,18 @@ BEGIN
  IF p_status NOT IN ('confirmee','en_preparation','en_livraison','livree','annulee')
  THEN RAISE EXCEPTION 'Statut incorrect'; END IF;
  IF o.status='annulee' OR o.status='livree' THEN RAISE EXCEPTION 'Commande terminée'; END IF;
+ IF p_status='confirmee' AND o.status<>'a_confirmer'
+ THEN RAISE EXCEPTION 'Confirmer une commande en attente seulement'; END IF;
+ IF p_status='en_preparation' AND o.status<>'confirmee'
+ THEN RAISE EXCEPTION 'Confirmer avant préparation'; END IF;
+ IF p_status='en_livraison' AND (o.status<>'en_preparation' OR o.v2_ready_at IS NULL)
+ THEN RAISE EXCEPTION 'Colis non prêt'; END IF;
+ IF p_status='livree' AND
+  (o.status<>'en_livraison' OR lower(o.delivery_city)='lubumbashi'
+   OR o.v2_shipping_status IS DISTINCT FROM 'expediee')
+ THEN RAISE EXCEPTION 'Livraison non confirmable'; END IF;
+ IF p_status='annulee' AND o.status='en_livraison'
+ THEN RAISE EXCEPTION 'Régler la livraison en cours avant annulation'; END IF;
  IF p_status='en_preparation' AND lower(o.delivery_city)<>'lubumbashi'
      AND o.payment_status<>'payee' THEN
     RAISE EXCEPTION 'Payer avant achat et préparation hors Lubumbashi';
