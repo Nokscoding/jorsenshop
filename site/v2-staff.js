@@ -50,6 +50,7 @@ css.textContent=[
 '.jsv2-error{background:#fff0f0;color:#9a2929;padding:12px;border-radius:10px;margin:12px 0}',
 '@media(max-width:550px){.jsv2-main{width:100%;margin:10px auto 110px;border-radius:0;padding:17px}.jsv2-login{padding:23px}}'
 ].join('\n');
+css.textContent += "\n.jsv2-catalogue-heading{margin:27px 0 15px}\n.jsv2-catalogue-heading h2{margin-bottom:5px}\n.jsv2-catalogue-heading p{margin:0;color:#718393;font-size:13px;line-height:1.6}\n.jsv2-products-table .jsv2-table{min-width:775px}\n.jsv2-products-table .jsv2-table th{white-space:nowrap}\n.jsv2-products-table .jsv2-table td{vertical-align:middle}\n.jsv2-product-intro{display:flex;align-items:center;gap:14px;min-width:225px}\n.jsv2-product-title{min-width:0;font-size:13px;line-height:1.45;color:#17314c}\n.jsv2-product-title strong{display:block;overflow-wrap:anywhere}\n.jsv2-product-title small{display:block;color:#758898;margin-top:6px;font-size:11px}\n.jsv2-photo-button{display:block;position:relative;overflow:hidden;flex:none;width:85px;height:102px;padding:0;border:1px solid #dde8ed;border-radius:12px;background:#f5f8f9;cursor:zoom-in}\n.jsv2-photo-button img{display:block;width:100%;height:100%;object-fit:contain}\n.jsv2-photo-button:focus-visible,.jsv2-gallery button:focus-visible{outline:3px solid #06bca8;outline-offset:2px}\n.jsv2-photo-total{position:absolute;bottom:5px;left:5px;right:5px;text-align:center;background:#163247dc;color:white;font-size:10px;line-height:1.5;border-radius:6px;padding:2px}\n.jsv2-photo-missing{display:grid;place-items:center;flex:none;width:85px;height:102px;box-sizing:border-box;border:1px dashed #cbd8dc;border-radius:12px;background:#f5f8f9;color:#81909a;font-size:11px;text-align:center}\n.jsv2-product-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}\n.jsv2-product-actions button{padding:9px 11px;border-radius:8px;border:1px solid #c3ded8;color:#125f59;background:#e9faf5;font-weight:750;font-size:12px;cursor:pointer}\n.jsv2-product-actions button:hover{background:#d2f4e9}\n.jsv2-product-status{display:inline-block;border-radius:20px;font-size:11px;font-weight:750;padding:5px 9px;white-space:nowrap}\n.jsv2-product-status.published{color:#12755e;background:#e3f8ed}\n.jsv2-product-status.hidden{color:#7b6c3d;background:#f7f1dd}\n.jsv2-products-mobile{display:none}\n.jsv2-gallery-backdrop{padding:15px;z-index:16003}\n.jsv2-dialog .jsv2-gallery{width:min(700px,100%);max-height:92dvh;overflow-y:auto;padding:21px;box-sizing:border-box;border-radius:20px;box-shadow:0 20px 65px #020f2666;background:white}\n.jsv2-gallery-head{display:flex;justify-content:space-between;align-items:start;gap:15px}\n.jsv2-gallery-head small{color:#0c9a8d;letter-spacing:1.8px;font-weight:800;font-size:11px}\n.jsv2-gallery-head h2{margin:6px 0 17px;line-height:1.3}\n.jsv2-gallery-close{border:0;background:#eef3f5;color:#132e43;font-size:28px;border-radius:50%;width:44px;height:44px;cursor:pointer;flex:none}\n.jsv2-gallery-stage{display:grid;grid-template-columns:38px minmax(0,1fr) 38px;align-items:center;gap:6px;border-radius:14px;background:#f6f8fa;padding:10px 6px}\n.jsv2-gallery-large{display:block;width:100%;height:min(50dvh,410px);min-height:170px;object-fit:contain;min-width:0}\n.jsv2-gallery-arrow{border:1px solid #d4e3e8;background:#fff;color:#18394e;cursor:pointer;width:38px;height:48px;border-radius:11px;font-size:30px}\n.jsv2-gallery-caption{text-align:center;font-weight:750;color:#567081;margin:12px 0 15px;font-size:13px}\n.jsv2-gallery-thumbs{display:flex;gap:9px;overflow-x:auto;align-items:center;padding:5px 3px 14px}\n.jsv2-gallery-thumbs button{height:77px;width:67px;min-width:67px;padding:3px;box-sizing:border-box;border:1px solid #d8e4e9;border-radius:9px;background:#fff;cursor:pointer}\n.jsv2-gallery-thumbs button.active{border:2px solid #10bca6;background:#ebfdf8}\n.jsv2-gallery-thumbs img{display:block;width:100%;height:100%;object-fit:contain;border-radius:7px}\n@media(max-width:690px){\n .jsv2-products-table{display:none}\n .jsv2-products-mobile{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}\n .jsv2-product-card{border:1px solid #e1e9ed;border-radius:16px;padding:14px 13px;background:#fff;min-width:0}\n .jsv2-product-card .jsv2-product-intro{align-items:flex-start;min-width:0}\n .jsv2-product-card .jsv2-photo-button,.jsv2-product-card .jsv2-photo-missing{width:104px;height:126px}\n .jsv2-product-card .jsv2-product-info{min-width:0;flex:1}\n .jsv2-product-card .jsv2-product-title{font-size:15px}\n .jsv2-product-category{display:block;margin:7px 0;color:#728697;font-size:12px}\n .jsv2-product-price{font-size:17px;font-weight:850;margin:7px 0 8px;color:#183048}\n .jsv2-product-card .jsv2-product-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:14px}\n .jsv2-product-card .jsv2-product-actions button{font-size:12px;padding:12px 7px;white-space:nowrap;min-width:0}\n .jsv2-dialog .jsv2-gallery{padding:16px}\n .jsv2-gallery-stage{grid-template-columns:31px minmax(0,1fr) 31px}\n .jsv2-gallery-arrow{width:31px;height:43px}\n}\n";
 document.head.append(css);
 function notice(message){
  let old=$('.jsv2-toast');if(old)old.remove();
@@ -101,6 +102,122 @@ const getState=s=>({
  a_confirmer:'Commande en attente',confirmee:'Commande confirmée',en_preparation:'En préparation',
  en_livraison:'En cours de livraison',livree:'Livrée',annulee:'Annulée'
 }[s]||s);
+
+// Each published product can have several colours and several Cloudinary images.
+function productPictures(product){
+ const list=[],seen=new Set();
+ for(const variant of Array.isArray(product?.variants)?product.variants:[]){
+  for(const image of Array.isArray(variant.images)?variant.images:[]){
+   if(typeof image!=='string'||seen.has(image))continue;
+   try{
+    const u=new URL(image);
+    if(u.protocol!=='https:'||u.hostname!=='res.cloudinary.com'||
+      !u.pathname.startsWith('/jrgtsxkt/image/upload/'))continue;
+    seen.add(image);
+    list.push({src:image,color:String(variant.color||'Couleur non précisée')});
+   }catch{}
+  }
+ }
+ return list;
+}
+function productThumbnail(product){
+ const photos=productPictures(product);
+ if(!photos.length)return '<div class="jsv2-photo-missing" role="img" aria-label="Aucune photo">Photo<br>indisponible</div>';
+ const count=photos.length;
+ return '<button type="button" class="jsv2-photo-button" data-jsv2="product-photos" data-id="'+h(product.id)+
+  '" aria-label="Afficher les '+count+' photos de '+h(product.name)+'">'+
+  '<img src="'+h(photos[0].src)+'" alt="" loading="lazy" decoding="async">'+
+  '<span class="jsv2-photo-total">'+count+' photo'+(count>1?'s':'')+'</span></button>';
+}
+function manageProductButtons(product){
+ return '<div class="jsv2-product-actions">'+
+  button('edit-product',product.id,'Modifier')+
+  button('edit-stock',product.id,'Stock')+
+  button('toggle-publication',product.id,product.is_published?'Masquer':'Publier')+
+ '</div>';
+}
+function renderProductCatalogue(products){
+ const status=p=>'<span class="jsv2-product-status '+(p.is_published?'published':'hidden')+'">'+
+  (p.is_published?'Visible':'Masqué')+'</span>';
+ const title=p=>'<div class="jsv2-product-title"><strong>'+h(p.name)+'</strong>'+
+  '<small>'+((p.variants||[]).length)+' couleur'+((p.variants||[]).length>1?'s':'')+'</small></div>';
+ const rows=products.map(p=>
+  '<tr><td><div class="jsv2-product-intro">'+productThumbnail(p)+title(p)+'</div></td>'+
+  '<td>'+h(p.category)+'</td><td><strong>'+money(p.priceFc)+'</strong></td>'+
+  '<td>'+status(p)+'</td><td>'+manageProductButtons(p)+'</td></tr>').join('');
+ const cards=products.map(p=>
+  '<article class="jsv2-product-card"><div class="jsv2-product-intro">'+productThumbnail(p)+
+    '<div class="jsv2-product-info">'+title(p)+
+    '<span class="jsv2-product-category">'+h(p.category)+'</span>'+
+    '<div class="jsv2-product-price">'+money(p.priceFc)+'</div>'+status(p)+'</div></div>'+
+    manageProductButtons(p)+'</article>').join('');
+ return '<div class="jsv2-catalogue-heading"><h2>Catalogue ('+products.length+')</h2>'+
+  '<p>Touchez la photo d’un article pour voir ses couleurs et toutes ses images.</p></div>'+
+  '<div class="jsv2-products-table jsv2-table-wrap"><table class="jsv2-table"><thead><tr>'+
+  '<th>Article et photos</th><th>Catégorie</th><th>Prix</th><th>État</th><th>Gestion</th>'+
+  '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+  '<div class="jsv2-products-mobile">'+cards+'</div>';
+}
+function viewProductImages(id){
+ const product=(data.products||[]).find(p=>p.id===id);
+ if(!product)return notice('Produit introuvable');
+ const images=productPictures(product);
+ if(!images.length)return notice('Aucune photo pour cet article');
+ const previousFocus=document.activeElement;
+ if(popup)popup.remove();
+ const overlay=document.createElement('div');
+ popup=overlay;overlay.className='jsv2-dialog jsv2-gallery-backdrop';
+ overlay.innerHTML='<section class="jsv2-card jsv2-gallery" role="dialog" aria-modal="true" aria-label="Photos du produit '+h(product.name)+'">'+
+  '<div class="jsv2-gallery-head"><div><small>PHOTOS DU PRODUIT</small><h2>'+h(product.name)+'</h2></div>'+
+  '<button type="button" class="jsv2-gallery-close" data-gallery="close" aria-label="Fermer les photos">×</button></div>'+
+  '<div class="jsv2-gallery-stage">'+
+   '<button type="button" class="jsv2-gallery-arrow" data-gallery="previous" aria-label="Photo précédente">‹</button>'+
+   '<img class="jsv2-gallery-large" alt="'+h(product.name)+'">'+
+   '<button type="button" class="jsv2-gallery-arrow" data-gallery="next" aria-label="Photo suivante">›</button>'+
+  '</div><p class="jsv2-gallery-caption" aria-live="polite"></p>'+
+  '<div class="jsv2-gallery-thumbs" aria-label="Toutes les photos">'+
+  images.map((img,i)=>'<button type="button" data-gallery="show" data-index="'+i+'" aria-label="Voir photo '+(i+1)+
+   ' : '+h(img.color)+'"><img src="'+h(img.src)+'" alt="" loading="lazy"></button>').join('')+
+  '</div></section>';
+ document.body.append(overlay);
+ let index=0;
+ const paint=()=>{
+  const current=images[index];
+  const large=$('.jsv2-gallery-large',overlay),caption=$('.jsv2-gallery-caption',overlay);
+  if(large){large.src=current.src;large.alt=product.name+' — '+current.color;}
+  if(caption)caption.textContent=current.color+' · Photo '+(index+1)+' sur '+images.length;
+  overlay.querySelectorAll('[data-gallery="show"]').forEach(btn=>{
+   const active=Number(btn.dataset.index)===index;
+   btn.classList.toggle('active',active);
+   btn.setAttribute('aria-current',active?'true':'false');
+  });
+ };
+ const close=()=>{
+  overlay.remove();
+  if(popup===overlay)popup=null;
+  document.removeEventListener('keydown',onKey);
+  if(previousFocus?.isConnected)previousFocus.focus();
+ };
+ const onKey=e=>{
+  if(e.key==='Escape')close();
+  if(e.key==='ArrowLeft'){index=(index-1+images.length)%images.length;paint();}
+  if(e.key==='ArrowRight'){index=(index+1)%images.length;paint();}
+ };
+ overlay.addEventListener('click',e=>{
+  if(e.target===overlay)return close();
+  const item=e.target.closest('[data-gallery]');
+  if(!item)return;
+  if(item.dataset.gallery==='close')return close();
+  if(item.dataset.gallery==='show')index=Number(item.dataset.index);
+  if(item.dataset.gallery==='previous')index=(index-1+images.length)%images.length;
+  if(item.dataset.gallery==='next')index=(index+1)%images.length;
+  paint();
+ });
+ document.addEventListener('keydown',onKey);
+ paint();
+ $('.jsv2-gallery-close',overlay)?.focus();
+}
+
 function adminHTML(){
  const orders=data.orders||[],products=data.products||[],categories=data.categories||[];
  const messages='<div class="jsv2-note">Chaque commande possède une conversation privée accessible depuis la rubrique Commandes.</div>';
@@ -124,10 +241,7 @@ function adminHTML(){
   '<label>Images (Cloudinary)<input name="photos" type="file" accept="image/*" multiple required></label>'+
   '<label>Description<textarea name="description" rows="2"></textarea></label>'+
   '<button class="jsv2-btn" type="submit">Ajouter comme brouillon</button></form>'+
-  '<h2>Catalogue ('+products.length+')</h2><div class="jsv2-table-wrap"><table class="jsv2-table"><thead><tr><th>Article</th><th>Catégorie</th><th>Prix</th><th>État</th><th>Action</th></tr></thead><tbody>'+
-  products.map(p=>'<tr><td>'+h(p.name)+'</td><td>'+h(p.category)+'</td><td>'+money(p.priceFc)+'</td><td>'+
-   (p.is_published?'Visible':'Masqué')+'</td><td>'+button('edit-product',p.id,'Modifier')+' '+button('edit-stock',p.id,'Stock')+' '+button('toggle-publication',p.id,p.is_published?'Masquer':'Publier')+'</td></tr>').join('')+
-  '</tbody></table></div>',nav);
+  renderProductCatalogue(products),nav);
  if(tab==='equipe')return frame('<h2>Accès professionnels</h2><p class="jsv2-note">Les employés doivent posséder un compte avant attribution de rôle. Aucun rôle ne peut être attribué par le client lui-même.</p>'+
   '<form id="jsv2-role-form" class="jsv2-form"><label>E-mail collaborateur<input type="email" name="email" required></label>'+
   '<label>Rôle<select name="role"><option value="livreur">Livreur</option>'+
@@ -263,6 +377,7 @@ document.addEventListener('click',async e=>{
  const a=btn.dataset.jsv2,id=btn.dataset.id;
  try{
   if(a==='retry-load')return showDashboard();
+  if(a==='product-photos')return viewProductImages(id);
   if(a==='logout'){await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
   if(a==='chat')return chat(id);
   if(a==='add-category'){
