@@ -8,7 +8,7 @@ export default async function handler(req,res){
  if(req.method==='GET'){
   const rows=await sql`SELECT r.auth_user_id AS id,u.name,u.email,r.role,r.enabled
     FROM v2_user_roles r LEFT JOIN neon_auth."user" u ON u.id::text=r.auth_user_id
-    WHERE r.role IN('gerant','investisseur','livreur','admin')
+    WHERE r.enabled=true AND r.role IN('gerant','investisseur','livreur','admin')
     ORDER BY r.role,u.name LIMIT 100`;
   return json(res,200,{roles:rows});
  }
