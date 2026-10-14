@@ -10,9 +10,11 @@ export function authBase(){
 export async function authFetch(req,path,options={}){
  const cookies=String(req.headers.cookie||'').split(';').map(x=>x.trim()).filter(x=>
   /^(?:__Secure-|__Host-)?(?:better-auth|neon-auth)\.[A-Za-z0-9_.-]+=/.test(x)).join('; ');
- const headers={'Content-Type':'application/json',Accept:'application/json'};
+ // Neon Auth enforces an Origin header even on server-to-server signup calls.
+ // Fetch requests to this same-origin API may omit Origin, so pin our trusted public URL.
+ const headers={'Content-Type':'application/json',Accept:'application/json',
+   Origin:'https://jorsenshop.vercel.app'};
  if(cookies)headers.Cookie=cookies;
- if(req.headers.origin)headers.Origin=req.headers.origin;
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),10000);
  try{
