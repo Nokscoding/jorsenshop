@@ -6,8 +6,8 @@ export default async function handler(req,res){
  try{
   const sql=db();
   const rows=await sql`SELECT r.auth_user_id AS id,COALESCE(u.name,'Livreur') AS name
-   FROM v2_user_roles r LEFT JOIN neon_auth.user u
-     ON u.id=r.auth_user_id
+   FROM v2_user_roles r LEFT JOIN neon_auth."user" u
+     ON u.id::text=r.auth_user_id
    WHERE r.role='livreur' AND r.enabled=true ORDER BY name LIMIT 100`;
   return json(res,200,{drivers:rows});
  }catch{return json(res,503,{error:'Liste des livreurs indisponible'})}
