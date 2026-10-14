@@ -74,7 +74,7 @@ function loginForm(error=''){
    if((portal==='admin'&&!['admin','gerant'].includes(result.role))||
      (portal==='investisseur'&&!['admin','investisseur'].includes(result.role))||
      (portal==='livreur'&&result.role!=='livreur'))throw Error('Ce compte ne dispose pas des accès pour cet espace.');
-   veil.remove();await load();
+   veil.remove();await showDashboard();
   }catch(err){loginForm(err.message)}
  };
 }
@@ -209,6 +209,19 @@ async function load(){
  else data=await api('driver');
  loaded=true;render();
 }
+// A successful login must not be mistaken for a failed password when a dashboard query fails.
+async function showDashboard(){
+ try{
+  await load();
+ }catch(e){
+  loaded=false;
+  console.error('JorsenShop professional dashboard',e?.name);
+  const retry='<div class="jsv2-card"><h2>Connexion réussie</h2>'+
+   '<p>Votre compte est reconnu, mais certaines données de gestion sont momentanément indisponibles.</p>'+
+   '<button class="jsv2-btn" data-jsv2="retry-load">Réessayer le chargement</button></div>';
+  shell(retry);
+ }
+}
 async function chat(number){
  if(popup)popup.remove();
  const div=document.createElement('div');popup=div;div.className='jsv2-dialog';
@@ -249,6 +262,7 @@ document.addEventListener('click',async e=>{
  const btn=e.target.closest('[data-jsv2]');if(!btn||!profile)return;
  const a=btn.dataset.jsv2,id=btn.dataset.id;
  try{
+  if(a==='retry-load')return showDashboard();
   if(a==='logout'){await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
   if(a==='chat')return chat(id);
   if(a==='add-category'){
@@ -357,7 +371,7 @@ async function init(){
   if((portal==='admin'&&['admin','gerant'].includes(s.role))||
      (portal==='investisseur'&&['investisseur','admin'].includes(s.role))||
      (portal==='livreur'&&s.role==='livreur')){
-    profile=s;$('#jsv2-backdrop')?.remove();await load();
+    profile=s;$('#jsv2-backdrop')?.remove();await showDashboard();
   }
  }catch{}
 }
