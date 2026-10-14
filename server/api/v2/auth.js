@@ -40,9 +40,19 @@ export default async function handler(req,res){
  try{
   const upstream=await authFetch(req,path,{method:'POST',body:JSON.stringify(payload)});
   const cookies=relayCookies(upstream);if(cookies.length)res.setHeader('Set-Cookie',cookies);
-  if(!upstream.ok)return json(res,upstream.status===429?429:400,{
-    error:upstream.status===429?'Trop de tentatives':'Identifiants incorrects ou inscription refusée'
-  });
+  if(!upstream.ok){
+    const errorResult=await upstream.json().catch(()=>({}));
+    const code=String(errorResult.code||errorResult.error?.code||'AUTH_REJECTED').replace(/[^A-Z0-9_]/gi,'').slice(0,55);
+    const safeStatus=[400,401,403,404,409,422,429,500,502,503].includes(upstream.status)?upstream.status:400;
+    console.warn('Neon Auth upstream rejected request', {action,status:upstream.status,code});
+    const userFacing=code==='USER_ALREADY_EXISTS'?'Cette adresse possède déjà un compte. Connectez-vous.':
+      code==='INVALID_EMAIL'?'Adresse e-mail invalide.':
+      code==='PASSWORD_TOO_SHORT'?'Le mot de passe est trop court.':
+      safeStatus===429?'Trop de tentatives. Veuillez patienter.':
+      action==='signup'?'Inscription refusée par le service d’authentification.':
+      'Connexion refusée par le service d’authentification.';
+    return json(res,safeStatus,{error:userFacing+' (code '+code+', HTTP '+upstream.status+')',code});
+  }
   return json(res,200,{ok:true});
  }catch(e){
   console.error('Neon auth',e?.name);
