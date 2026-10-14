@@ -7,7 +7,7 @@ export default async function handler(req,res){
  const sql=db();
  if(req.method==='GET'){
   const rows=await sql`SELECT r.auth_user_id AS id,u.name,u.email,r.role,r.enabled
-    FROM v2_user_roles r LEFT JOIN neon_auth.user u ON u.id=r.auth_user_id
+    FROM v2_user_roles r LEFT JOIN neon_auth."user" u ON u.id::text=r.auth_user_id
     WHERE r.role IN('gerant','investisseur','livreur','admin')
     ORDER BY r.role,u.name LIMIT 100`;
   return json(res,200,{roles:rows});
@@ -20,9 +20,9 @@ export default async function handler(req,res){
  if(role!=='livreur'&&actor.role!=='admin')
    return json(res,403,{error:'Seul un administrateur peut attribuer ce rôle'});
  try{
-  const users=await sql`SELECT id FROM neon_auth.user WHERE lower(email)=${email} LIMIT 1`;
+  const users=await sql`SELECT id FROM neon_auth."user" WHERE lower(email)=${email} LIMIT 1`;
   if(!users.length)return json(res,404,{error:'Ce compte doit se créer avant attribution du rôle'});
-  const id=users[0].id;
+  const id=String(users[0].id);
   await sql`INSERT INTO v2_user_roles(auth_user_id,role,enabled)
     VALUES(${id},${role},true)
     ON CONFLICT(auth_user_id,role) DO UPDATE SET enabled=true`;
