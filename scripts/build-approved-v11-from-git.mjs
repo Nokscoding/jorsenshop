@@ -138,6 +138,10 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
  "};",
  endpointMarker
  ].join('\n'));
+ // Staff workspaces are real; remove the obsolete V1.1 demo label from their header.
+ const staffDemo='<span class="staff-demo-mark">DÉMO</span>';
+ if(!live.includes(staffDemo))throw Error('Missing obsolete V1 staff badge');
+ live=live.replaceAll(staffDemo,'');
  live=live.replaceAll('Maquette locale sans connexion ni protection d’accès — données fictives.', 'Espace professionnel sécurisé');
  // Replace V1.1 demo-only customer copy without altering the approved interface layout.
  // Prices can be modified by the manager; do not advertise fictional checkout flows.
