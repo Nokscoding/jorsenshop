@@ -95,7 +95,7 @@ function tabs(entries){
 function frame(body,options){
  return '<div class="jsv2-head"><div><small>JORSENSHOP · '+h(profile?.role||'')+'</small><h1>'+
    (portal==='livreur'?'Mes livraisons':portal==='investisseur'?'Rapports financiers':'Gestion de la boutique')+
-   '</h1></div><button class="jsv2-btn" data-jsv2="logout">Déconnexion</button></div>'+
+   '</h1></div><button class="jsv2-btn" data-jsv2="enable-push">Activer les alertes</button><button class="jsv2-btn" data-jsv2="logout">Déconnexion</button></div>'+
    tabs(options)+body;
 }
 const getState=s=>({
@@ -386,6 +386,7 @@ document.addEventListener('click',async e=>{
  const a=btn.dataset.jsv2,id=btn.dataset.id;
  try{
   if(a==='retry-load')return showDashboard();
+  if(a==='enable-push'){notice(await window.JORSEN_ENABLE_PUSH());return}
   if(a==='product-photos')return viewProductImages(id);
   if(a==='logout'){await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
   if(a==='chat')return chat(id);

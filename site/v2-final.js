@@ -120,7 +120,7 @@ function accountMarkup(tab='accueil'){
   '<div class="j2-empty"><h2>Aucune conversation</h2><p>Une conversation est ouverte pour chaque commande.</p></div>'));
  if(tab==='notifications')return root('Notifications','Les nouvelles de vos commandes',top+
   '<div class="j2-card"><div class="j2-title-row"><h2>Activité récente</h2>'+
-   (typeof Notification!=='undefined'&&Notification.permission==='default'?
+   (typeof Notification!=='undefined'&&Notification.permission!=='denied'?
     '<button class="j2-outline" data-j2="allow-notifications">Activer les alertes</button>':'')+'</div>'+
    (state.notifications.length?state.notifications.map(n=>'<div class="j2-notification '+(n.is_read?'':'unread')+'"><div>'+
      '<strong>'+esc(n.title)+'</strong><small>'+esc(new Date(n.created_at).toLocaleString('fr-FR'))+'</small></div>'+
@@ -384,9 +384,8 @@ document.addEventListener('click',async e=>{
    await refreshNotifications(false);
   }catch(err){toast(err.message,true)}
  }else if(action==='allow-notifications'&&typeof Notification!=='undefined'){
-  try{const result=await Notification.requestPermission();
-   toast(result==='granted'?'Alertes activées':'Les notifications restent dans votre compte.');renderNow();
-  }catch{}
+  try{toast(await window.JORSEN_ENABLE_PUSH());renderNow()}
+  catch(err){toast(err.message,true)}
  }
 });
 document.addEventListener('submit',async e=>{

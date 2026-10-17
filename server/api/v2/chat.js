@@ -1,3 +1,4 @@
+import {dispatchPendingPush} from './_lib/push-dispatch.js';
 import crypto from 'node:crypto';
 import {db,json,only,rateLimit} from '../_lib/shared.js';
 import {currentUser,staffRole,validWriteOrigin} from './_lib/identity.js';
@@ -53,5 +54,6 @@ export default async function handler(req,res){
   await sql`INSERT INTO v2_notifications(user_auth_id,order_id,kind,title)
    VALUES(${order.v2_client_auth_id},${order.id},'new_message','Nouvelle réponse de JorsenShop')`;
  }
+ await dispatchPendingPush();
  return json(res,201,{ok:true,id:rows[0].id});
 }
