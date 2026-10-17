@@ -7,14 +7,14 @@ export default async function handler(req,res){
  try{
   const sql=db();
   const [sales,expenses,agreements]=await Promise.all([
-   sql`SELECT to_char(date_trunc('month',o.paid_at),'YYYY-MM') month,
+   sql`SELECT to_char(date_trunc('month',o.paid_at),'YYYY-MM') AS month,
      count(DISTINCT o.id) AS paid_orders,coalesce(sum(i.line_total_fc),0) AS product_sales_fc,
      coalesce(sum(i.unit_purchase_cost_fc*i.quantity),0) AS purchase_costs_fc,
      count(*) FILTER(WHERE i.unit_purchase_cost_fc IS NULL) AS missing_cost_lines
      FROM orders o JOIN order_items i ON i.order_id=o.id
      WHERE o.payment_status='payee' AND o.paid_at IS NOT NULL
      GROUP BY date_trunc('month',o.paid_at) ORDER BY month DESC LIMIT 24`,
-   sql`SELECT to_char(date_trunc('month',incurred_at),'YYYY-MM') month,
+   sql`SELECT to_char(date_trunc('month',incurred_at),'YYYY-MM') AS month,
      sum(amount_fc) amount_fc FROM expenses GROUP BY 1 ORDER BY 1 DESC LIMIT 24`,
    sql`SELECT name,percentage,basis,starts_on,ends_on FROM revenue_agreements
      WHERE signed_at IS NOT NULL ORDER BY created_at DESC LIMIT 8`
