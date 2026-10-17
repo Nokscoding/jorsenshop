@@ -388,7 +388,7 @@ document.addEventListener('click',async e=>{
   if(a==='retry-load')return showDashboard();
   if(a==='enable-push'){notice(await window.JORSEN_ENABLE_PUSH());return}
   if(a==='product-photos')return viewProductImages(id);
-  if(a==='logout'){await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
+  if(a==='logout'){await window.JORSEN_DISABLE_PUSH?.();await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
   if(a==='chat')return chat(id);
   if(a==='add-category'){
    const name=prompt('Nom de la nouvelle catégorie');if(!name)return;

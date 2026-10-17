@@ -373,7 +373,7 @@ document.addEventListener('click',async e=>{
   if(location.hash.includes('commander'))state.afterAuth=true;
   go('compte/'+(action==='login'?'connexion':'inscription'));
  }else if(action==='logout'){
-  try{await send('/api/v2/auth?action=logout',{method:'POST',body:'{}'});}
+  try{await window.JORSEN_DISABLE_PUSH?.();await send('/api/v2/auth?action=logout',{method:'POST',body:'{}'});}
   catch(err){toast(err.message,true);return}
   state.user=null;state.profile=null;state.orders=[];state.notifications=[];state.unread=0;
   state.afterAuth=false;go('compte/accueil');

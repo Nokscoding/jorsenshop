@@ -19,4 +19,14 @@ window.JORSEN_ENABLE_PUSH=async()=>{
  if(!res.ok)throw Error(o.error||'Activation impossible');
  return 'Notifications push activées pour cet appareil.';
 };
+window.JORSEN_DISABLE_PUSH=async()=>{
+ try{
+  if(!('serviceWorker' in navigator))return;
+  const reg=await navigator.serviceWorker.getRegistration('/');
+  const sub=await reg?.pushManager?.getSubscription();if(!sub)return;
+  await fetch('/api/v2/push',{method:'DELETE',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:sub.toJSON()})}).catch(()=>{});
+  await sub.unsubscribe();
+ }catch{}
+};
 })();
