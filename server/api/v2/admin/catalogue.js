@@ -14,6 +14,8 @@ export default async function handler(req,res){
    sql`SELECT p.id,p.name,p.category,p.description,p.price_fc,p.purchase_cost_fc,p.sizes,p.is_published,p.prices_confirmed,
       COALESCE((SELECT json_agg(json_build_object('id',v.id,'color',v.color,'images',v.images,
         'stock',COALESCE((SELECT json_object_agg(s.size,s.quantity)
+         FROM variant_stock s WHERE s.variant_id=v.id),'{}'::json),
+        'stockProvisional',COALESCE((SELECT json_object_agg(s.size,s.is_provisional)
          FROM variant_stock s WHERE s.variant_id=v.id),'{}'::json))
        ORDER BY v.id) FROM product_variants v WHERE v.product_id=p.id),'[]'::json) AS variants
     FROM products p ORDER BY p.id DESC LIMIT 400`
@@ -70,7 +72,8 @@ export default async function handler(req,res){
   if(!variants.length)return json(res,404,{error:'Variante inexistante'});
   const rows=await sql`INSERT INTO variant_stock(variant_id,size,quantity)
     VALUES(${variantId},${size},${quantity})
-    ON CONFLICT(variant_id,size) DO UPDATE SET quantity=EXCLUDED.quantity
+    ON CONFLICT(variant_id,size) DO UPDATE
+    SET quantity=EXCLUDED.quantity,is_provisional=false
     WHERE variant_stock.reserved<=EXCLUDED.quantity RETURNING quantity`;
   if(!rows.length)return json(res,409,{error:'Stock inférieur aux quantités réservées'});
   return json(res,200,{ok:true,quantity:Number(rows[0].quantity)});
