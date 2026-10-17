@@ -39,3 +39,5 @@ CREATE TABLE IF NOT EXISTS v2_push_subscriptions(
  CHECK(length(user_auth_id) BETWEEN 8 AND 200)
 );
 CREATE INDEX IF NOT EXISTS v2_push_subscriptions_user_idx ON v2_push_subscriptions(user_auth_id);
+
+ALTER TABLE v2_notifications ADD COLUMN IF NOT EXISTS push_sent_at timestamptz;
