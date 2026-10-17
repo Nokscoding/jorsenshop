@@ -129,6 +129,7 @@ function productThumbnail(product){
   '<img src="'+h(photos[0].src)+'" alt="" loading="lazy" decoding="async">'+
   '<span class="jsv2-photo-total">'+count+' photo'+(count>1?'s':'')+'</span></button>';
 }
+css.textContent += "\n.jsv2-stock-provisional{display:block;color:#a45b20;font-size:12px;font-weight:700;margin-top:6px}\n.jsv2-purchase-cost{display:block;font-size:11px;color:#617c8c;margin-top:3px}\n";
 function manageProductButtons(product){
  return '<div class="jsv2-product-actions">'+
   button('edit-product',product.id,'Modifier')+
@@ -137,22 +138,26 @@ function manageProductButtons(product){
  '</div>';
 }
 function renderProductCatalogue(products){
+ const isUnverified=p=>(p.variants||[]).some(v=>Object.values(v.stockProvisional||{}).some(Boolean));
+ const displayCost=p=>'<small class="jsv2-purchase-cost">Coût d’achat : '+
+  (p.purchaseCostFc===null?'à renseigner':money(p.purchaseCostFc))+'</small>';
  const status=p=>'<span class="jsv2-product-status '+(p.is_published?'published':'hidden')+'">'+
-  (p.is_published?'Visible':'Masqué')+'</span>';
+  (p.is_published?'Visible':'Masqué')+'</span>'+
+  (isUnverified(p)?'<small class="jsv2-stock-provisional">Stock provisoire · à vérifier</small>':'');
  const title=p=>'<div class="jsv2-product-title"><strong>'+h(p.name)+'</strong>'+
   '<small>'+((p.variants||[]).length)+' couleur'+((p.variants||[]).length>1?'s':'')+'</small></div>';
  const rows=products.map(p=>
   '<tr><td><div class="jsv2-product-intro">'+productThumbnail(p)+title(p)+'</div></td>'+
-  '<td>'+h(p.category)+'</td><td><strong>'+money(p.priceFc)+'</strong></td>'+
+  '<td>'+h(p.category)+'</td><td><strong>'+money(p.priceFc)+'</strong>'+displayCost(p)+'</td>'+
   '<td>'+status(p)+'</td><td>'+manageProductButtons(p)+'</td></tr>').join('');
  const cards=products.map(p=>
   '<article class="jsv2-product-card"><div class="jsv2-product-intro">'+productThumbnail(p)+
     '<div class="jsv2-product-info">'+title(p)+
     '<span class="jsv2-product-category">'+h(p.category)+'</span>'+
-    '<div class="jsv2-product-price">'+money(p.priceFc)+'</div>'+status(p)+'</div></div>'+
+    '<div class="jsv2-product-price">'+money(p.priceFc)+'</div>'+displayCost(p)+status(p)+'</div></div>'+
     manageProductButtons(p)+'</article>').join('');
  return '<div class="jsv2-catalogue-heading"><h2>Catalogue ('+products.length+')</h2>'+
-  '<p>Touchez la photo d’un article pour voir ses couleurs et toutes ses images.</p></div>'+
+  '<p>Les quantités provisoires doivent être vérifiées avant les ventes. « Stock » permet de les modifier et « Modifier » de renseigner le coût d’achat.</p></div>'+
   '<div class="jsv2-products-table jsv2-table-wrap"><table class="jsv2-table"><thead><tr>'+
   '<th>Article et photos</th><th>Catégorie</th><th>Prix</th><th>État</th><th>Gestion</th>'+
   '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
