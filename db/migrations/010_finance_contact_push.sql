@@ -11,9 +11,12 @@ BEGIN
     FROM products WHERE id=NEW.product_id;
   RETURN NEW;
 END $$;
-DROP TRIGGER IF EXISTS jorsen_order_purchase_cost ON order_items;
-CREATE TRIGGER jorsen_order_purchase_cost BEFORE INSERT ON order_items
-  FOR EACH ROW EXECUTE FUNCTION jorsen_capture_purchase_cost();
+DO $ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='jorsen_order_purchase_cost') THEN
+  CREATE TRIGGER jorsen_order_purchase_cost BEFORE INSERT ON order_items
+   FOR EACH ROW EXECUTE FUNCTION jorsen_capture_purchase_cost();
+ END IF;
+END $;
 
 CREATE TABLE IF NOT EXISTS v2_contact_messages(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
