@@ -26,6 +26,7 @@ import m23 from '../server/api/v2/notifications.js';
 import m24 from '../server/api/v2/orders.js';
 import m25 from '../server/api/v2/shipping-quote.js';
 import m26 from '../server/api/v2/staff.js';
+import m27 from '../server/api/v2/contact.js';
 const routes=Object.freeze({
   'admin/catalogue-import':m0,
   'admin/media-sign':m1,
@@ -53,7 +54,8 @@ const routes=Object.freeze({
   'v2/notifications':m23,
   'v2/orders':m24,
   'v2/shipping-quote':m25,
-  'v2/staff':m26
+  'v2/staff':m26,
+  'v2/contact':m27
 });
 export default async function handler(req,res){
  try{

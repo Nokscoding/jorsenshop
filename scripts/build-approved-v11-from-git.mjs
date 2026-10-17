@@ -109,6 +109,16 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
 }
 
 
+
+// Production legal pages and installable web app metadata survive the V1.1 reconstruction.
+for(const rel of ['index.html','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html']){
+ const target=path.join('site',rel);
+ let html=await fs.readFile(target,'utf8');
+ if(!html.includes('/legal.js'))html=html.replace(/<\/body>/i,'<script defer src="/legal.js"></script>\n</body>');
+ if(!html.includes('/manifest.webmanifest'))html=html.replace(/<\/head>/i,'<link rel="manifest" href="/manifest.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n</head>');
+ await fs.writeFile(target,html,'utf8');
+}
+
 // Live catalogue toggle: retain V1 layout, but never sell mock items.
 // JS functions continue using the same product renderer; only its backing array changes.
 {
