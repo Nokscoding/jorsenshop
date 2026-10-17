@@ -1,13 +1,38 @@
 /* Jorsenshop : choix cookies explicites, aucune mesure d'audience activée. */
 (()=>{'use strict';
 const KEY='jorsenshop_cookie_preferences_v1';
-const links=[['Confidentialité','/confidentialite.html'],['Cookies','/cookies.html'],['Conditions de vente','/conditions-vente.html'],['Livraison','/livraison.html'],['Contact','/contact.html']];
+const links=[['Confidentialité','/confidentialite.html'],['Cookies','/cookies.html'],['Conditions de vente','/conditions-vente.html'],['Livraison','/livraison.html'],['Retours et remboursements','/retours-remboursements.html'],['Mentions légales','/mentions-legales.html'],['Contact','/contact.html']];
 const style=document.createElement('style');style.textContent='.js-legal-links{display:flex;flex-wrap:wrap;gap:13px;justify-content:center;margin:14px auto;font-size:12px}.js-legal-links a{color:inherit;text-decoration:underline}.js-cookie-backdrop{position:fixed;inset:0;z-index:19000;background:#08182793;display:flex;align-items:flex-end;justify-content:center;padding:12px}.js-cookie-panel{width:min(100%,720px);background:#fff;color:#20394f;padding:22px;border-radius:16px;box-shadow:0 18px 50px #0004;font:14px/1.65 system-ui,sans-serif}.js-cookie-panel h2{font-size:20px;margin:0 0 9px}.js-cookie-panel p{margin:0 0 9px}.js-cookie-panel button{margin:6px 8px 0 0;padding:10px 15px;cursor:pointer;border-radius:8px;border:1px solid #173f58;font-size:14px}.js-cookie-panel button.js-cookie-primary{background:#103a55;color:#fff}.js-cookie-panel a{color:#126b79}.js-cookie-panel small{color:#596d7b}';
 document.head.append(style);
 function getPrefs(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch{return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({essential:true,analytics:false,marketing:false,updatedAt:new Date().toISOString()}))}catch{}document.getElementById('js-cookie-backdrop')?.remove();updateStatus()}
 function updateStatus(){const el=document.getElementById('cookie-current');if(el)el.textContent=getPrefs()?'Préférences enregistrées : stockage nécessaire uniquement, aucun suivi publicitaire ou analytique.':'Aucun choix enregistré. Le stockage nécessaire reste actif.'}
 function show(){document.getElementById('js-cookie-backdrop')?.remove();const overlay=document.createElement('div');overlay.id='js-cookie-backdrop';overlay.className='js-cookie-backdrop';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Préférences cookies');overlay.innerHTML='<div class="js-cookie-panel"><h2>Votre confidentialité compte</h2><p>Jorsenshop utilise uniquement les données de navigateur nécessaires à la ville, au panier et à votre connexion. Aucun cookie publicitaire ou analytique n’est utilisé.</p><small>Notifications push : une autorisation distincte est demandée sur votre initiative.</small><p><a href="/cookies.html">Notre politique de cookies</a> · <a href="/confidentialite.html">Confidentialité</a></p><button type="button" class="js-cookie-primary" id="js-cookie-save">Continuer avec les cookies nécessaires</button></div>';document.body.append(overlay);overlay.querySelector('button').addEventListener('click',save);overlay.querySelector('button').focus()}
-function setup(){const footer=document.querySelector('footer');if(footer){const nav=document.createElement('nav');nav.className='js-legal-links';nav.setAttribute('aria-label','Informations légales');for(const [text,url] of links){const a=document.createElement('a');a.textContent=text;a.href=url;nav.append(a)}const b=document.createElement('a');b.href='/cookies.html';b.textContent='Préférences';nav.append(b);footer.append(nav)}document.getElementById('cookie-review')?.addEventListener('click',show);updateStatus();if(!getPrefs())show()}
+function ensureFooter(){
+ const footer=document.querySelector('footer');if(!footer)return;
+ const redirects={'livraison':'/livraison.html','remboursements':'/retours-remboursements.html',
+  'retours et remboursements':'/retours-remboursements.html',
+  'cgv':'/conditions-vente.html','conditions générales de vente':'/conditions-vente.html',
+  'confidentialité':'/confidentialite.html','mentions légales':'/mentions-legales.html'};
+ for(const a of footer.querySelectorAll('a')){
+  const target=redirects[a.textContent.trim().toLocaleLowerCase('fr')];
+  if(target&&a.getAttribute('href')!==target)a.setAttribute('href',target);
+ }
+ if(footer.querySelector('.js-legal-links'))return;
+ const nav=document.createElement('nav');nav.className='js-legal-links';
+ nav.setAttribute('aria-label','Informations légales');
+ for(const [title,url] of links){const a=document.createElement('a');a.textContent=title;a.href=url;nav.append(a)}
+ const b=document.createElement('a');b.href='/cookies.html';b.textContent='Préférences';nav.append(b);
+ footer.append(nav);
+}
+function setup(){
+ ensureFooter();
+ // The approved V1.1 app replaces its footer when navigating between catalogue pages.
+ let pending=false;
+ new MutationObserver(()=>{if(pending)return;pending=true;queueMicrotask(()=>{pending=false;ensureFooter()})})
+  .observe(document.body,{childList:true,subtree:true});
+ document.getElementById('cookie-review')?.addEventListener('click',show);
+ updateStatus();if(!getPrefs())show();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
 })();
