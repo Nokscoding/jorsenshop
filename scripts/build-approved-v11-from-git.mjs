@@ -206,11 +206,11 @@ for(const rel of ['index.html','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/i
  ];
  for(const [from,to] of storefrontCopy)live=live.replaceAll(from,to);
  // Catch punctuation/whitespace variants while preserving the approved layout.
- live=live.replace(/Prototype\\s*V1\\s*[·•-]\\s*sans base de données\\s*[·•-]\\s*FC/gi,
+ live=live.replace(/Prototype\s*V1\s*[·•-]\s*sans base de données\s*[·•-]\s*FC/gi,
   'Boutique en ligne · Lubumbashi, RDC');
- live=live.replace(/Catalogue et fonctionnalit(?:é|e)s de d(?:é|e)monstration\\.?/gi,
+ live=live.replace(/Catalogue et fonctionnalit(?:é|e)s de d(?:é|e)monstration\.?/gi,
   'Découvrez nos collections et nos nouveautés.');
- if(/Prototype\\s*V1|sans base de données|fonctionnalit(?:é|e)s de d(?:é|e)monstration/i.test(live))
+ if(/Prototype\s*V1|sans base de données|fonctionnalit(?:é|e)s de d(?:é|e)monstration/i.test(live))
   throw Error('A storefront demo label survived the approved V1.1 rebuild');
  // V2 published Neon products carry full Cloudinary URLs; return them as-is.
  live=live.replace('return ROOT+path;',[
