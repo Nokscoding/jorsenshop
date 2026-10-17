@@ -1,6 +1,10 @@
-name: JorsenShop V2 validation (no deployment)
+name: JorsenShop production readiness checks
 on:
   push:
+    branches:
+      - feature/jorsenshop-v2-foundations
+      - feature/jorsenshop-finalisation-20261017
+  pull_request:
     branches:
       - feature/jorsenshop-v2-foundations
   workflow_dispatch:
@@ -10,29 +14,31 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - name: Syntax check
+      - name: JavaScript syntax
         run: |
           set -e
-          for file in api/v2/*.js api/v2/_lib/*.js api/v2/admin/*.js v2/*.mjs site/v2-*.js scripts/build-approved-v11-from-git.mjs; do
-            node --check "$file"
-          done
-      - name: Shipping policy tests
+          find api server v2 site scripts -type f \( -name '*.js' -o -name '*.mjs' \) -print0 |
+            while IFS= read -r -d '' file; do node --check "$file"; done
+      - name: Shipping calculation tests
         run: node --test v2/shipping-policy.test.mjs
-      - name: Restore approved V1.1 and augment V2 (no publish)
+      - name: Build original approved design with production extensions
         run: |
           node scripts/build-approved-v11-from-git.mjs
           node --check site/app.js
-          test -s site/s/a7m4/index.html
-          test -s site/s/i9p2/index.html
-          test -s site/s/l6q8/index.html
-          grep -q 'v2-client.js' site/index.html
-          grep -q 'v2-staff.js' site/s/l6q8/index.html
-      - name: Assert protected original assets
-        run: |
+          grep -q 'v2-final.js' site/index.html
+          grep -q 'legal.js' site/index.html
+          grep -q 'push-client.js' site/index.html
+          for f in confidentialite cookies conditions-vente livraison contact; do
+            test -s "site/$f.html"
+          done
+          for f in site/s/a7m4/index.html site/s/i9p2/index.html site/s/l6q8/index.html; do
+            test -s "$f"
+            grep -q 'v2-staff.js' "$f"
+          done
           test -s site/assets/favicon.svg
           test -s site/styles.css
           test -s site/mobile-first.css
