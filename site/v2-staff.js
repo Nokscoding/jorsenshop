@@ -61,7 +61,7 @@ function notice(message){
 function loginForm(error=''){
  let veil=$('#jsv2-backdrop');
  if(!veil){veil=document.createElement('section');veil.className='jsv2-backdrop';veil.id='jsv2-backdrop';document.body.append(veil)}
- veil.innerHTML='<div class="jsv2-login"><div class="eyebrow">JORSENSHOP · V2</div><h1>Accès professionnel</h1>'+
+ veil.innerHTML='<div class="jsv2-login"><div class="eyebrow">JORSENSHOP</div><h1>Accès professionnel</h1>'+
   '<p>Connexion réservée aux collaborateurs disposant d’un rôle autorisé. Vos identifiants restent confidentiels.</p>'+
   (error?'<div class="jsv2-error">'+h(error)+'</div>':'')+
   '<form id="jsv2-login-form"><label>Adresse e-mail<input name="email" type="email" autocomplete="username" required></label>'+
@@ -95,7 +95,7 @@ function tabs(entries){
 function frame(body,options){
  return '<div class="jsv2-head"><div><small>JORSENSHOP · '+h(profile?.role||'')+'</small><h1>'+
    (portal==='livreur'?'Mes livraisons':portal==='investisseur'?'Rapports financiers':'Gestion de la boutique')+
-   '</h1></div><button class="jsv2-btn" data-jsv2="logout">Déconnexion</button></div>'+
+   '</h1></div><button class="jsv2-btn" data-jsv2="enable-push">Activer les alertes</button><button class="jsv2-btn" data-jsv2="logout">Déconnexion</button></div>'+
    tabs(options)+body;
 }
 const getState=s=>({
@@ -221,7 +221,7 @@ function viewProductImages(id){
 function adminHTML(){
  const orders=data.orders||[],products=data.products||[],categories=data.categories||[];
  const messages='<div class="jsv2-note">Chaque commande possède une conversation privée accessible depuis la rubrique Commandes.</div>';
- const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['equipe','Équipe'],['notifications','Notifications']];
+ const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['equipe','Équipe'],['contact','Contact'],['notifications','Notifications']];
  if(tab==='accueil')return frame('<div class="jsv2-grid">'+
   [['Commandes',orders.length],['En attente',orders.filter(o=>o.status==='a_confirmer').length],
    ['En préparation',orders.filter(o=>o.status==='en_preparation').length],
@@ -234,7 +234,8 @@ function adminHTML(){
  if(tab==='produits')return frame('<h2>Ajouter un produit</h2><form id="jsv2-add-product" class="jsv2-form">'+
   '<label>Nom commercial<input name="name" required placeholder="Ex. Pull quarter-zip"></label>'+
   '<label>Catégorie<select name="category" required>'+categories.map(c=>'<option>'+h(c.name)+'</option>').join('')+'</select></label>'+
-  '<label>Prix en FC<input name="priceFc" type="number" min="0" required></label>'+
+  '<label>Prix de vente en FC<input name="priceFc" type="number" min="0" required></label>'+
+  '<label>Coût d’achat unitaire en FC (pour le calcul des bénéfices)<input name="purchaseCostFc" type="number" min="0" placeholder="Renseigner le coût réel"></label>'+
   '<label>Couleur<input name="color" placeholder="Noir" required></label>'+
   '<label>Tailles (séparées par une virgule)<input name="sizes" placeholder="S,M,L,XL" required></label>'+
   '<label>Stock par taille<input name="stock" type="number" min="0" value="0" required></label>'+
@@ -248,6 +249,10 @@ function adminHTML(){
   (profile?.role==='admin'?'<option value="gerant">Gérant</option><option value="investisseur">Investisseur</option><option value="admin">Administrateur</option>':'')+
   '</select></label><button class="jsv2-btn">Autoriser ce compte</button></form>'+
   '<h2>Comptes autorisés</h2>'+((data.roles||[]).map(r=>'<div class="jsv2-card">'+h(r.name||r.email||r.id)+' — '+h(r.role)+'</div>').join('')||'Aucun compte'),nav);
+ if(tab==='contact')return frame('<h2>Messages reçus</h2>'+
+  ((data.contactMessages||[]).map(m=>'<article class="jsv2-card"><strong>'+h(m.topic)+'</strong> · '+h(m.name)+
+   '<p>'+h(m.message)+'</p><small>Pour répondre : '+h(m.reply_to)+' · '+h(m.created_at)+'</small></article>').join('')||
+   '<p class="jsv2-note">Aucune demande pour le moment.</p>'),nav);
  if(tab==='notifications')return frame('<h2>Dernières notifications</h2>'+
   ((data.notifications||[]).map(n=>'<div class="jsv2-card jsv2-row"><div><b>'+h(n.title)+'</b><small>'+h(n.created_at)+'</small></div>'+
    (n.is_read?'Lu':button('read-notif',n.id,'Marquer lu'))+'</div>').join('')||'<p>Rien de nouveau</p>'),nav);
@@ -276,13 +281,17 @@ function renderOrders(orders){
 }
 function investorHTML(){
  const m=data.monthly||[],e=data.expenses||[];
- const total=m.reduce((s,x)=>s+x.revenueFc,0);
- return frame('<div class="jsv2-note">Lecture seule : uniquement les montants réellement encaissés. Aucune rémunération de 30 % appliquée sans accord signé.</div>'+
- '<div class="jsv2-grid"><div class="jsv2-stat"><span>Ventes encaissées (période)</span><b>'+money(total)+'</b></div>'+
- '<div class="jsv2-stat"><span>Dépenses</span><b>'+money(e.reduce((s,x)=>s+x.amountFc,0))+'</b></div></div>'+
- '<h2>Historique mensuel</h2><div class="jsv2-table-wrap"><table class="jsv2-table"><thead><tr><th>Mois</th><th>Commandes payées</th><th>Ventes</th></tr></thead><tbody>'+
- m.map(x=>'<tr><td>'+h(x.month)+'</td><td>'+x.orders+'</td><td>'+money(x.revenueFc)+'</td></tr>').join('')+'</tbody></table></div>'+
- '<h2>Accords signés</h2>'+((data.agreements||[]).map(a=>'<p>'+h(a.name)+' — '+h(a.percentage)+' %</p>').join('')||'<p>Aucun accord signé enregistré</p>'),
+ const total=m.reduce((s,x)=>s+x.revenueFc,0),costs=m.reduce((s,x)=>s+x.purchaseCostsFc,0);
+ const missing=m.reduce((s,x)=>s+x.missingCosts,0),share=m.every(x=>x.nksShareFc!==null)?
+  m.reduce((s,x)=>s+x.nksShareFc,0):null;
+ return frame('<div class="jsv2-note">Accord communiqué : <b>30 % de la marge brute des articles encaissés</b> avant charges générales, hors frais de livraison. Versement mensuel à rapprocher avec la comptabilité, non automatique.</div>'+
+ '<div class="jsv2-grid"><div class="jsv2-stat"><span>Ventes encaissées</span><b>'+money(total)+'</b></div>'+
+ '<div class="jsv2-stat"><span>Coûts d’achat connus</span><b>'+money(costs)+'</b></div>'+
+ '<div class="jsv2-stat"><span>Part NKS (30 %)</span><b>'+(share===null?'À compléter':money(share))+'</b></div></div>'+
+ (missing?'<p class="jsv2-error">Coûts d’achat manquants sur '+missing+' ligne(s) vendue(s) : impossible de calculer un bénéfice exact.</p>':'')+
+ '<h2>Historique mensuel</h2><div class="jsv2-table-wrap"><table class="jsv2-table"><thead><tr><th>Mois</th><th>Commandes payées</th><th>Ventes</th><th>Coûts d’achat</th><th>Marge brute</th><th>Part de 30 %</th></tr></thead><tbody>'+
+ m.map(x=>'<tr><td>'+h(x.month)+'</td><td>'+x.orders+'</td><td>'+money(x.revenueFc)+'</td><td>'+money(x.purchaseCostsFc)+'</td><td>'+(x.grossProfitFc===null?'Coûts manquants':money(x.grossProfitFc))+'</td><td>'+(x.nksShareFc===null?'—':money(x.nksShareFc))+'</td></tr>').join('')+'</tbody></table></div>'+
+ '<h2>Accords enregistrés</h2>'+((data.agreements||[]).map(a=>'<p>'+h(a.name)+' — '+h(a.percentage)+' %</p>').join('')||'<p>Aucun document d’accord signé enregistré dans la base.</p>'),
  [['accueil','Synthèse']]);
 }
 function driverHTML(){
@@ -314,10 +323,10 @@ function render(){
 async function load(){
  if(!profile)return;
  if(portal==='admin'){
-  const [orders,cat,notif,roles]=await Promise.all([
-   api('admin/orders'),api('admin/catalogue'),api('notifications'),api('admin/roles')
+  const [orders,cat,notif,roles,contact]=await Promise.all([
+   api('admin/orders'),api('admin/catalogue'),api('notifications'),api('admin/roles'),api('contact')
   ]);
-  data={...orders,...cat,...roles,notifications:notif.notifications};
+  data={...orders,...cat,...roles,notifications:notif.notifications,contactMessages:contact.messages};
   unread=notif.unread;
  }else if(portal==='investisseur')data=await api('investor');
  else data=await api('driver');
@@ -377,8 +386,9 @@ document.addEventListener('click',async e=>{
  const a=btn.dataset.jsv2,id=btn.dataset.id;
  try{
   if(a==='retry-load')return showDashboard();
+  if(a==='enable-push'){notice(await window.JORSEN_ENABLE_PUSH());return}
   if(a==='product-photos')return viewProductImages(id);
-  if(a==='logout'){await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
+  if(a==='logout'){await window.JORSEN_DISABLE_PUSH?.();await api('auth?action=logout',{method:'POST',body:'{}'});profile=null;loginForm();return}
   if(a==='chat')return chat(id);
   if(a==='add-category'){
    const name=prompt('Nom de la nouvelle catégorie');if(!name)return;
@@ -391,9 +401,13 @@ document.addEventListener('click',async e=>{
    const name=prompt('Nom courant du produit',p.name);if(!name)return;
    const category=prompt('Catégorie',p.category);if(!category)return;
    const priceFc=Number(prompt('Prix FC',p.priceFc));if(!Number.isSafeInteger(priceFc))return;
+   const costText=prompt('Coût d’achat unitaire en FC (laisser vide si inconnu)',p.purchaseCostFc===null?'':p.purchaseCostFc);
+   if(costText===null)return;
+   const purchaseCostFc=costText.trim()===''?null:Number(costText);
+   if(purchaseCostFc!==null&&(!Number.isSafeInteger(purchaseCostFc)||purchaseCostFc<0))throw Error('Coût d’achat invalide');
    const description=prompt('Description',p.description||'');if(description===null)return;
    await api('admin/catalogue',{method:'POST',body:JSON.stringify({
-    action:'update-metadata',id,name,category,priceFc,description
+    action:'update-metadata',id,name,category,priceFc,purchaseCostFc,description
    })});
   }else if(a==='edit-stock'){
    const p=(data.products||[]).find(p=>p.id===id);if(!p)return;
@@ -471,7 +485,7 @@ document.addEventListener('submit',async e=>{
    const stock=Object.fromEntries(sizes.map(s=>[s,Math.max(0,Number(values.stock)||0)]));
    await api('admin/catalogue',{method:'POST',body:JSON.stringify({
     action:'save-product',name:values.name,category:values.category,
-    priceFc:Number(values.priceFc),description:values.description,sizes,
+    priceFc:Number(values.priceFc),purchaseCostFc:values.purchaseCostFc===''?null:Number(values.purchaseCostFc),description:values.description,sizes,
     variants:[{color:values.color,images,stock}],isPublished:false,pricesConfirmed:false
    })});
    notice('Produit ajouté. Vous pouvez modifier son prix et son stock à tout moment.');

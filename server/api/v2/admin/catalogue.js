@@ -11,14 +11,14 @@ export default async function handler(req,res){
  if(req.method==='GET'){
   const [categories,products]=await Promise.all([
    sql`SELECT id,name,slug,active,position FROM v2_categories ORDER BY position,name`,
-   sql`SELECT p.id,p.name,p.category,p.description,p.price_fc,p.sizes,p.is_published,p.prices_confirmed,
+   sql`SELECT p.id,p.name,p.category,p.description,p.price_fc,p.purchase_cost_fc,p.sizes,p.is_published,p.prices_confirmed,
       COALESCE((SELECT json_agg(json_build_object('id',v.id,'color',v.color,'images',v.images,
         'stock',COALESCE((SELECT json_object_agg(s.size,s.quantity)
          FROM variant_stock s WHERE s.variant_id=v.id),'{}'::json))
        ORDER BY v.id) FROM product_variants v WHERE v.product_id=p.id),'[]'::json) AS variants
     FROM products p ORDER BY p.id DESC LIMIT 400`
   ]);
-  return json(res,200,{categories,products:products.map(p=>({...p,priceFc:Number(p.price_fc)}))});
+  return json(res,200,{categories,products:products.map(p=>({...p,priceFc:Number(p.price_fc),purchaseCostFc:p.purchase_cost_fc===null?null:Number(p.purchase_cost_fc)}))});
  }
  if(!only(req,res,'POST')||!validWriteOrigin(req,res))return;
  const b=req.body||{};
@@ -42,16 +42,19 @@ export default async function handler(req,res){
  }
  if(b.action==='update-metadata'){
   const id=String(b.id||''),name=String(b.name||'').trim(),category=String(b.category||'').trim(),
-    priceFc=Number(b.priceFc),description=String(b.description||'').trim();
+    priceFc=Number(b.priceFc),description=String(b.description||'').trim(),
+    hasCost=Object.prototype.hasOwnProperty.call(b,'purchaseCostFc'),
+    purchaseCostFc=b.purchaseCostFc===''||b.purchaseCostFc===null?null:Number(b.purchaseCostFc);
   if(!/^js-[a-zA-Z0-9_-]{3,64}$/.test(id)||name.length<2||name.length>150||
-     !Number.isSafeInteger(priceFc)||priceFc<0||description.length>3000)
+     !Number.isSafeInteger(priceFc)||priceFc<0||description.length>3000||
+     (hasCost&&purchaseCostFc!==null&&(!Number.isSafeInteger(purchaseCostFc)||purchaseCostFc<0)))
     return json(res,400,{error:'Fiche produit invalide'});
   const cats=await sql`SELECT 1 FROM v2_categories WHERE name=${category} AND active=true`;
   if(!cats.length)return json(res,400,{error:'Catégorie inexistante'});
   // Editing a price/name must never depend on stock or a separate price approval.
   // Publishing is a separate manager action; keep the existing publication state.
   const rows=await sql`UPDATE products SET name=${name},category=${category},description=${description},
-    price_fc=${priceFc},
+    price_fc=${priceFc},purchase_cost_fc=CASE WHEN ${hasCost} THEN ${purchaseCostFc} ELSE purchase_cost_fc END,
     updated_at=now() WHERE id=${id} RETURNING id`;
   return json(res,rows.length?200:404,{ok:!!rows.length,id});
  }
@@ -86,9 +89,12 @@ export default async function handler(req,res){
  }
  if(b.action==='save-product'){
   const name=String(b.name||'').trim(),category=String(b.category||'').trim();
-  const priceFc=Number(b.priceFc),variants=b.variants;
+  const priceFc=Number(b.priceFc),variants=b.variants,
+   purchaseCostFc=b.purchaseCostFc===''||b.purchaseCostFc===null||b.purchaseCostFc===undefined?
+    null:Number(b.purchaseCostFc);
   if(name.length<2||name.length>150||!Number.isSafeInteger(priceFc)||priceFc<0||
-     !Array.isArray(variants)||!variants.length||variants.length>35)
+     !Array.isArray(variants)||!variants.length||variants.length>35||
+     (purchaseCostFc!==null&&(!Number.isSafeInteger(purchaseCostFc)||purchaseCostFc<0)))
    return json(res,400,{error:'Données produit incomplètes'});
   const validCat=await sql`SELECT 1 FROM v2_categories WHERE name=${category} AND active=true`;
   if(!validCat.length)return json(res,400,{error:'Sélectionnez une catégorie existante'});
@@ -116,6 +122,7 @@ export default async function handler(req,res){
   };
   try{
    const rows=await sql`SELECT staff_save_product(${JSON.stringify(payload)}::jsonb) AS id`;
+   if(purchaseCostFc!==null)await sql`UPDATE products SET purchase_cost_fc=${purchaseCostFc} WHERE id=${rows[0].id}`;
    return json(res,200,{ok:true,id:rows[0].id});
   }catch(e){console.error('v2 save product',e?.name);return json(res,409,{error:'Enregistrement refusé : vérifiez les stocks et les variantes'})}
  }

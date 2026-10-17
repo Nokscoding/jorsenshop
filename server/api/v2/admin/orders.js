@@ -1,3 +1,4 @@
+import {dispatchPendingPush} from '../_lib/push-dispatch.js';
 import {db,json,only} from '../../_lib/shared.js';
 import {requireStaff,validWriteOrigin} from '../_lib/identity.js';
 export default async function handler(req,res){
@@ -25,6 +26,7 @@ export default async function handler(req,res){
    if(!['confirmee','en_preparation','en_livraison','livree','annulee'].includes(b.status))
     return json(res,400,{error:'Statut invalide'});
    const rows=await sql`SELECT v2_staff_set_status(${number},${b.status},${staff.id}) AS result`;
+   await dispatchPendingPush();
    return json(res,200,rows[0].result);
   }
   if(b.action==='ready'){
@@ -33,6 +35,7 @@ export default async function handler(req,res){
     AND (lower(delivery_city)='lubumbashi' OR payment_status='payee')
     RETURNING id`;
    if(!rows.length)return json(res,409,{error:'Préparation incomplète ou paiement non confirmé'});
+   await dispatchPendingPush();
    return json(res,200,{ok:true});
   }
   if(b.action==='verify-payment'){

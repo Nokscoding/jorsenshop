@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Jorsenshop",
+  "short_name": "Jorsenshop",
+  "description": "Boutique mode et sneakers",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b2034",
+  "icons": [
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

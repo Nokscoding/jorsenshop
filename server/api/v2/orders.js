@@ -1,3 +1,4 @@
+import {dispatchPendingPush} from './_lib/push-dispatch.js';
 import crypto from 'node:crypto';
 import {db,json,only,rateLimit} from '../_lib/shared.js';
 import {currentUser,requireUser,validWriteOrigin} from './_lib/identity.js';
@@ -42,6 +43,7 @@ export default async function handler(req,res){
   const rows=await sql`SELECT place_v2_order(${user.id},${name},${phone},${address},${city},
     ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode},${quote.paymentRequiredBeforePurchase?b.paymentProvider:null}) AS result`;
   const result=rows[0].result;
+  await dispatchPendingPush();
   return json(res,201,{...result,trackingToken:result.existing?null:trackingToken,
     instruction:quote.paymentRequiredBeforePurchase?
     'La préparation et l’expédition commenceront après vérification du paiement Mobile Money par le gérant.':

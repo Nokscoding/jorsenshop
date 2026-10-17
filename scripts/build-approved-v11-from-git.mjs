@@ -109,6 +109,33 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
 }
 
 
+
+// Production legal pages and installable web app metadata survive the V1.1 reconstruction.
+for(const rel of ['index.html','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html']){
+ const target=path.join('site',rel);
+ let html=await fs.readFile(target,'utf8');
+ if(!html.includes('/legal.js'))html=html.replace(/<\/body>/i,'<script defer src="/legal.js"></script><script defer src="/push-client.js"></script>\n</body>');
+ if(!html.includes('/manifest.webmanifest'))html=html.replace(/<\/head>/i,'<link rel="manifest" href="/manifest.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n</head>');
+ await fs.writeFile(target,html,'utf8');
+}
+
+// Replace remaining static prototype captions without affecting layout or identifiers.
+for(const rel of ['index.html','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html']){
+ const target=path.join('site',rel);
+ let html=await fs.readFile(target,'utf8');
+ const replacements=[
+  ['MAQUETTE D’INTERFACE','JORSENSHOP · BOUTIQUE'],
+  ['MAQUETTE','JORSENSHOP'],
+  ['Maquette','Jorsenshop'],
+  ['DÉMONSTRATION','JORSENSHOP'],
+  ['DÉMO','JORSENSHOP'],
+  ['Prix fictifs','Prix en FC'],
+  ['sans créer de compte','après connexion'],
+  ['sans inscription','après connexion']
+ ];
+ for(const [before,after] of replacements)html=html.replaceAll(before,after);
+ await fs.writeFile(target,html,'utf8');
+}
 // Live catalogue toggle: retain V1 layout, but never sell mock items.
 // JS functions continue using the same product renderer; only its backing array changes.
 {
@@ -151,7 +178,7 @@ for(const rel of ['catalogue.js','catalogue.json','app.js']){
   ["Prix d'exemple en FC","Prix en FC"],
   ["Prix démo","Prix en FC"],
   ["LIVRAISON À LUBUMBASHI","LIVRAISON EN RDC"],
-  ["Cette commande reste une simulation locale.","Vous pouvez commander sans créer de compte."],
+  ["Cette commande reste une simulation locale.","Connectez-vous pour confirmer votre commande."],
   ["Les commandes restent enregistrées uniquement dans ce navigateur.","Consultez les informations de vos commandes ci-dessous."]
  ];
  for(const [from,to] of customerCopy)live=live.replaceAll(from,to);

@@ -1,3 +1,4 @@
+import {dispatchPendingPush} from './_lib/push-dispatch.js';
 import {db,json,only} from '../_lib/shared.js';
 import {requireStaff,validWriteOrigin} from './_lib/identity.js';
 export default async function handler(req,res){
@@ -24,6 +25,7 @@ export default async function handler(req,res){
  try{
   const rows=await sql`SELECT v2_driver_progress(${id}::uuid,${driver.id},${action},
      ${amount},${reason}) AS result`;
+  await dispatchPendingPush();
   return json(res,200,rows[0].result);
  }catch(e){console.error('v2 driver progress',e?.name);
   return json(res,409,{error:'Cette livraison ne peut pas être modifiée'})}
