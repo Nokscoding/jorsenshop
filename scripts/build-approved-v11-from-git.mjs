@@ -48,6 +48,7 @@ const cdn=[
   " return ROOT+path;",
   "};"
 ].join('\n');
+app=app.replace('function changeCarousel(index){\n if(!promoSlides.length)return;', 'function changeCarousel(index){\n if(document.querySelector(\'.shop-carousel[data-marketing-applied="1"]\'))return;\n if(!promoSlides.length)return;');
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
 console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
