@@ -1,4 +1,4 @@
-// Import du catalogue V1.1 sans publication des prix fictifs.
+// Import du catalogue V1.1 avec tarifs provisoires et éditables.
 import fs from 'node:fs/promises';
 import { neon } from '@neondatabase/serverless';
 
@@ -19,12 +19,12 @@ for (const product of catalogue) {
   }
   const price = Math.max(0, Math.trunc(Number(product.price) || 0));
   await sql.query([
-    'INSERT INTO products (id,name,category,description,price_fc,tag,sizes,is_published,prices_confirmed)',
-    'VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,false,false)',
+    'INSERT INTO products (id,name,category,description,price_fc,tag,sizes,is_published,prices_confirmed,price_is_placeholder)',
+    'VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,false,true,true)',
     'ON CONFLICT (id) DO UPDATE SET',
     'name=EXCLUDED.name,category=EXCLUDED.category,description=EXCLUDED.description,',
     'tag=EXCLUDED.tag,sizes=EXCLUDED.sizes,',
-    'price_fc=CASE WHEN products.prices_confirmed THEN products.price_fc ELSE EXCLUDED.price_fc END,',
+    'price_fc=products.price_fc,',
     'updated_at=now()'
   ].join(' '), [
     product.id, product.name, product.category, product.description || '',
@@ -41,4 +41,4 @@ for (const product of catalogue) {
   }
 }
 console.log('Import terminé :', catalogue.length, 'modèles et', variantCount, 'variantes.');
-console.log('Produits NON PUBLIÉS tant que les prix et les stocks ne sont pas validés.');
+console.log('Nouveaux produits créés en brouillons, sans validation des tarifs.');
