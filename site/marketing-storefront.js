@@ -72,8 +72,58 @@
    priceEl.innerHTML=`<del class="js-promo-original">${money(d.basePrice)}</del> <strong class="js-promo-price">${money(discounted)}</strong>`;
   });
  }
+
+ function quoteItems(){
+  let cart=[];
+  try{cart=JSON.parse(localStorage.getItem('jorsen_v1_cart')||'[]')}catch{}
+  if(!Array.isArray(cart)||cart.length<1)return null;
+  const items=cart.map(c=>({variantId:String(c.id||'')+'-v'+(Number(c.variant)+1),size:String(c.size||''),quantity:Number(c.qty)}));
+  return items.every(i=>/^js-[a-zA-Z0-9_-]+-v[1-9][0-9]*$/.test(i.variantId)&&i.size.length<=16&&Number.isInteger(i.quantity)&&i.quantity>0&&i.quantity<=10)?items:null;
+ }
+ function enhanceCheckout(){
+  const form=document.querySelector('#checkout-form[data-form="checkout"]');
+  if(!form||form.dataset.marketingCheckout==='1')return;
+  form.dataset.marketingCheckout='1';
+  const aside=form.querySelector('aside');
+  const button=form.querySelector('button[type="submit"]');
+  if(!aside||!button)return;
+  const panel=document.createElement('div');
+  panel.className='js-marketing-checkout';
+  panel.innerHTML='<label class="field">Code promo (facultatif)<input id="js-marketing-code" name="promoCode" autocomplete="off" maxlength="32" placeholder="Ex. NOEL20"></label><button type="button" class="btn btn-outline btn-sm" id="js-marketing-quote">Vérifier le code</button><p id="js-marketing-result" class="helper" role="status" aria-live="polite">Les remises sont calculées par Jorsenshop au moment de la commande.</p>';
+  button.before(panel);
+  const result=panel.querySelector('#js-marketing-result'),input=panel.querySelector('#js-marketing-code');
+  const quote=async()=>{
+   const items=quoteItems();
+   if(!items){result.textContent='Panier non reconnu. Rechargez la boutique.';return null}
+   const code=input.value.trim().toUpperCase();
+   try{
+    const r=await fetch('/api/quote',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({items,promoCode:code})});
+    const body=await r.json();
+    if(!r.ok)throw Error(body.error||'Code promotionnel indisponible');
+    result.textContent='Sous-total après réductions : '+money(body.total)+' (hors livraison) · Économies : '+money(body.discount);
+    result.dataset.quoteOk='1';return body;
+   }catch(e){
+    result.dataset.quoteOk='0';
+    result.textContent=e.message||'Offre non disponible';return null;
+   }
+  };
+  panel.querySelector('#js-marketing-quote').addEventListener('click',quote);
+  input.addEventListener('input',()=>{result.dataset.quoteOk='0';result.textContent='Vérifiez le code avant de continuer.'});
+  form.addEventListener('submit',async event=>{
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   result.textContent='Vérification de la commande…';
+   const quoteResult=await quote();
+   if(!quoteResult)return;
+   // La V1.1 n'a pas d'authentification client réelle ; ne jamais transformer
+   // cette simulation en commande sans le compte exigé dans le cahier des charges.
+   result.textContent='La réduction est reconnue, mais les commandes restent fermées jusqu’à l’activation des comptes clients sécurisés.';
+  },true);
+ }
+
  function enhance(){
   enhanceCarousel();
+  enhanceCheckout();
   // La V1.1 publique reste une maquette de checkout : ne jamais afficher un
   // prix promotionnel qui ne serait pas également appliqué à la commande.
   if(document.querySelector('#app')?.dataset.checkoutConnected==='true')enhanceDiscounts();
@@ -85,7 +135,8 @@
    const data=await response.json();
    slides=(Array.isArray(data.slides)?data.slides:[]).filter(s=>cleanUrl(s.mediaUrl));
    discounts=new Map((Array.isArray(data.discounts)?data.discounts:[]).map(d=>[d.productId,d]));
-   if(!slides.length&&!discounts.size)return;
+   // Même sans campagne, le formulaire de la V1.1 ne doit plus créer
+   // de fausses commandes locales présentées comme réelles.
    enhance();
    let queued=false;
    const observer=new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhance()})});
