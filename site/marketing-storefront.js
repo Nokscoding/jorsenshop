@@ -72,7 +72,12 @@
    priceEl.innerHTML=`<del class="js-promo-original">${money(d.basePrice)}</del> <strong class="js-promo-price">${money(discounted)}</strong>`;
   });
  }
- function enhance(){enhanceCarousel();enhanceDiscounts();}
+ function enhance(){
+  enhanceCarousel();
+  // La V1.1 publique reste une maquette de checkout : ne jamais afficher un
+  // prix promotionnel qui ne serait pas également appliqué à la commande.
+  if(document.querySelector('#app')?.dataset.checkoutConnected==='true')enhanceDiscounts();
+ }
  async function boot(){
   try{
    const response=await fetch('/api/marketing',{credentials:'same-origin',cache:'no-store'});
