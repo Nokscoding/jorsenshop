@@ -1,0 +1,10 @@
+.campaign-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:13px;margin:18px 0 28px}
+.campaign-card{border:1px solid #dce7e4;border-radius:13px;overflow:hidden;background:#fcfefd}
+.campaign-card img{width:100%;aspect-ratio:16/9;object-fit:cover;background:#eef1f2}
+.campaign-card>div{padding:14px}.campaign-card b{display:block;line-height:1.4}.campaign-card p{margin:7px 0}
+.campaign-card small{color:#667d87}.campaign-actions{display:flex;gap:8px;margin-top:14px}
+.campaign-actions button{border:1px solid #c8e6e0;color:#067969;background:#e5f9f3;font-weight:700;border-radius:9px;padding:9px 12px;font-size:12px}
+.campaign-preview{max-width:500px;width:100%;aspect-ratio:16/7;object-fit:cover;border-radius:12px;margin:0 0 14px}
+.staff-card form{border-top:1px solid #eef3f2;margin-top:17px;padding-top:20px}
+.staff-card form .toggle-row{justify-content:flex-start}
+@media(max-width:650px){.campaign-grid{grid-template-columns:1fr}.campaign-preview{aspect-ratio:16/9}}

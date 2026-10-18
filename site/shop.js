@@ -42,7 +42,7 @@ function $$(selector,root=document){return [...root.querySelectorAll(selector)]}
 function showProduct(id){
  const p=products.find(x=>x.id===id);if(!p)return;
  const variants=p.variants||[],sizes=p.sizes||[],v=variants[0];let idx=0,sz=sizes[0]||'';
- const body='<div class="modal-product"><div id="productImage"></div><div><div class="eyebrow">'+esc(p.category)+'</div><h3>'+esc(p.name)+'</h3><h2>'+money(p.price)+'</h2><p>'+esc(p.description||'Sélection Jorsenshop')+'</p><b>Couleur</b><div id="variantOptions" class="select-row">'+variants.map((a,i)=>'<button type="button" class="pill '+(i===0?'active':'')+'" data-variant="'+i+'">'+esc(a.color)+'</button>').join('')+'</div><b>Taille</b><div id="sizeOptions" class="select-row">'+sizes.map((a,i)=>'<button type="button" class="pill '+(i===0?'active':'')+'" data-size="'+esc(a)+'">'+esc(a)+'</button>').join('')+'</div><label class="field">Quantité<input id="qty" type="number" min="1" max="10" value="1"></label><button class="primary-button" id="addCart" type="button">Ajouter au panier →</button></div></div>';
+ const body='<div class="modal-product"><div id="productImage"></div><div><div class="eyebrow">'+esc(p.category)+'</div><h3>'+esc(p.name)+'</h3><h2>'+(p.originalPrice>p.price?'<del class="js-promo-original">'+money(p.originalPrice)+'</del> ':'')+money(p.price)+'</h2><p>'+esc(p.description||'Sélection Jorsenshop')+'</p><b>Couleur</b><div id="variantOptions" class="select-row">'+variants.map((a,i)=>'<button type="button" class="pill '+(i===0?'active':'')+'" data-variant="'+i+'">'+esc(a.color)+'</button>').join('')+'</div><b>Taille</b><div id="sizeOptions" class="select-row">'+sizes.map((a,i)=>'<button type="button" class="pill '+(i===0?'active':'')+'" data-size="'+esc(a)+'">'+esc(a)+'</button>').join('')+'</div><label class="field">Quantité<input id="qty" type="number" min="1" max="10" value="1"></label><button class="primary-button" id="addCart" type="button">Ajouter au panier →</button></div></div>';
  showModal(p.name,body,true);
  function renderImg(){const url=photo(p,idx);$('#productImage',modal).innerHTML=url?'<img src="'+esc(url)+'" alt="'+esc(p.name)+'">':'<div class="image-placeholder" style="padding:90px 20px">PHOTO BIENTÔT DISPONIBLE</div>'}
  renderImg();
@@ -82,9 +82,18 @@ function openCheckout(){
  <label>Ville *<input name="city" required value="Lubumbashi"></label>
  <label class="wide">Adresse de livraison *<input name="address" required minlength="8" maxlength="350" autocomplete="street-address"></label>
  <label class="wide">Précisions (facultatif)<textarea name="notes" maxlength="600" rows="3" placeholder="Quartier, repère, instructions..."></textarea></label>
+ <label class="wide">Code promo (facultatif)<input id="promoCode" name="promoCode" maxlength="32" placeholder="Ex. NOEL20" autocomplete="off"></label>
+ <div class="wide"><button type="button" class="btn" id="applyPromo">Vérifier le code</button><p id="promoQuote" aria-live="polite"></p></div>
  <div class="wide notice">Paiement à la livraison. Aucun compte client ni paiement bancaire nécessaire.</div>
  <button class="primary-button wide" type="submit">Confirmer ma commande</button>
  </form>`);
+ $('#applyPromo',modal).onclick=async()=>{
+   const code=String($('#promoCode',modal).value||'').trim();
+   try{
+    const q=await api('/api/quote',{method:'POST',body:JSON.stringify({items:cart.map(i=>({variantId:i.variantId,quantity:i.quantity})),promoCode:code})});
+    $('#promoQuote',modal).textContent='Réduction totale : '+money(q.discount)+' · Montant après réductions : '+money(q.total);
+   }catch(e){$('#promoQuote',modal).textContent=e.message}
+ };
  $('#checkoutForm',modal).onsubmit=async e=>{
   e.preventDefault();const form=e.target,button=$('button[type="submit"]',form);
   button.disabled=true;button.textContent='Enregistrement…';
@@ -93,7 +102,7 @@ function openCheckout(){
   try{
    const result=await api('/api/orders',{method:'POST',body:JSON.stringify({
     customerName:data.get('name'),phone:data.get('phone'),city:data.get('city'),address:data.get('address'),notes:data.get('notes'),
-    items:cart.map(i=>({variantId:i.variantId,size:i.size,quantity:i.quantity})),idempotencyKey:idem
+    items:cart.map(i=>({variantId:i.variantId,size:i.size,quantity:i.quantity})),promoCode:String(data.get('promoCode')||''),idempotencyKey:idem
    })});
    const histories=read(ordersKey,[]);histories.unshift({orderNumber:result.orderNumber,trackingToken:result.trackingToken,total:result.total});
    store(ordersKey,histories.slice(0,30));cart=[];store(cartKey,cart);updateCount();

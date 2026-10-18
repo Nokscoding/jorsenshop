@@ -21,7 +21,7 @@ function setRole(r){
  renderNav();if(r)changeTab(tab);
 }
 function renderNav(){
- nav.innerHTML=(role==='admin'?[['products','Produits & photos'],['orders','Commandes'],['finance','Rapports']]:[['finance','Suivi financier']])
+ nav.innerHTML=(role==='admin'?[['products','Produits & photos'],['orders','Commandes'],['marketing','Promotions & carrousel'],['finance','Rapports']]:[['finance','Suivi financier']])
   .map(([key,text])=>'<button type="button" data-tab="'+key+'" class="'+(tab===key?'active':'')+'">'+text+'</button>').join('');
  $$('[data-tab]',nav).forEach(btn=>btn.onclick=()=>changeTab(btn.dataset.tab));
 }
@@ -30,6 +30,7 @@ async function changeTab(t){
  try{
   if(t==='products'&&role==='admin'){products=(await api('/api/admin/products')).products;renderProducts();}
   if(t==='orders'&&role==='admin'){orders=(await api('/api/admin/orders')).orders;renderOrders();}
+  if(t==='marketing'&&role==='admin'){await window.JorsenMarketingAdmin.render(content);}
   if(t==='finance')renderFinance(await api('/api/investor/summary'));
  }catch(e){content.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
 }
@@ -41,7 +42,7 @@ function renderProducts(){
  '</td><td><strong>'+esc(p.name)+'</strong><small>'+esc(p.category)+'</small></td><td>'+money(p.priceFc)+'</td><td>'+p.variants.length+'</td><td>'+(p.isPublished?'Publié':'Brouillon')+'</td><td><button type="button" data-edit="'+esc(p.id)+'">Modifier</button></td></tr>').join('')+
  '</tbody></table>'+(products.length?'':'<p class="muted">Le catalogue est encore vide. Crée ton premier produit.</p>')+'</div>';
  $('#batchUpload').onchange=async e=>batchUpload(e.target.files);$('#folderUpload').onchange=async e=>batchUpload(e.target.files);$('#catalogueUpload').onchange=importCatalogue;$('#newProduct').onclick=()=>{editing={name:'',category:'Vêtements',priceFc:0,description:'',tag:'',sizes:[...sizesDefault],
-   isPublished:false,pricesConfirmed:false,variants:[{color:'Noir',images:[],stock:Object.fromEntries(sizesDefault.map(s=>[s,0]))}]};renderEditor()};
+   isPublished:false,priceIsPlaceholder:false,variants:[{color:'Noir',images:[],stock:Object.fromEntries(sizesDefault.map(s=>[s,0]))}]};renderEditor()};
  $$('[data-edit]',content).forEach(btn=>btn.onclick=()=>{const p=products.find(p=>p.id===btn.dataset.edit);editing=JSON.parse(JSON.stringify(p));renderEditor()});
 }
 function syncForm(){
@@ -51,7 +52,6 @@ function syncForm(){
  editing.priceFc=Number(data.get('priceFc')||0);editing.description=String(data.get('description')||'');
  editing.tag=String(data.get('tag')||'');
  editing.sizes=String(data.get('sizes')||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
- editing.pricesConfirmed=f.elements.pricesConfirmed.checked;
  editing.isPublished=f.elements.isPublished.checked;
  $$('.variant-box',f).forEach(box=>{
    const idx=Number(box.dataset.index),v=editing.variants[idx];if(!v)return;
@@ -73,9 +73,8 @@ function renderEditor(){
  '<h3>Couleurs, images et stocks</h3><p class="muted">Chaque couleur reste une variante du même produit. Indique le stock par taille pour chaque couleur.</p>'+
  '<div id="variants">'+p.variants.map((v,i)=>renderVariant(v,i,p.sizes)).join('')+'</div>'+
  '<button type="button" id="addVariant" class="small-btn">+ Ajouter une couleur</button>'+
- '<div class="toggle-row"><label><input name="pricesConfirmed" type="checkbox" '+(p.pricesConfirmed?'checked':'')+'> Les prix sont définitifs</label>'+
- '<label><input name="isPublished" type="checkbox" '+(p.isPublished?'checked':'')+'> Publier dans la boutique</label></div>'+
- '<div class="notice">Pour publier, confirme les prix et renseigne au moins une image Cloudinary et une quantité de stock disponible. Les modifications sont sauvegardées dans Neon.</div>'+
+ '<div class="toggle-row"><label><input name="isPublished" type="checkbox" '+(p.isPublished?'checked':'')+'> Publier dans la boutique</label></div>'+
+ '<div class="notice">Les prix sont modifiables sans validation. Pour publier, ajoute une image Cloudinary et du stock. Les modifications sont sauvegardées dans Neon.</div>'+
  '<button class="primary-button" id="saveProduct" type="submit">Enregistrer le produit →</button></form></div>';
  $('#backProducts').onclick=()=>{editing=null;renderProducts()};
  $('#addVariant').onclick=()=>{syncForm();editing.variants.push({color:'Nouvelle couleur',images:[],stock:Object.fromEntries(editing.sizes.map(s=>[s,0]))});renderEditor()};

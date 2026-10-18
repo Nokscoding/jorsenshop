@@ -6,7 +6,7 @@ export default async function handler(req,res){
  if(req.method==='GET'){
   try{
    const rows=await sql`
-    SELECT p.id,p.name,p.category,p.description,p.price_fc,p.tag,p.sizes,p.is_published,p.prices_confirmed,
+    SELECT p.id,p.name,p.category,p.description,p.price_fc,p.tag,p.sizes,p.is_published,p.price_is_placeholder,
       COALESCE((SELECT json_agg(json_build_object(
         'id',v.id,'color',v.color,'images',v.images,'stock',
           COALESCE((SELECT json_object_agg(s.size,s.quantity) FROM variant_stock s WHERE s.variant_id=v.id),'{}'::json)
@@ -15,7 +15,7 @@ export default async function handler(req,res){
    return json(res,200,{products:rows.map(p=>({
       id:p.id,name:p.name,category:p.category,description:p.description,
       priceFc:Number(p.price_fc),tag:p.tag,sizes:p.sizes,
-      isPublished:p.is_published,pricesConfirmed:p.prices_confirmed,variants:p.variants
+      isPublished:p.is_published,priceIsPlaceholder:p.price_is_placeholder,variants:p.variants
    }))});
   }catch(e){console.error(e.name);return json(res,503,{error:'Catalogue indisponible'})}
  }
@@ -43,7 +43,7 @@ export default async function handler(req,res){
    const sizes=Array.isArray(b.sizes)?b.sizes.filter(x=>/^[a-zA-Z0-9 -]{1,16}$/.test(x)).slice(0,30):[];
    const payload={id,name:String(b.name||'').trim().slice(0,150),category:String(b.category||'').trim().slice(0,80),
      description:String(b.description||'').trim().slice(0,3000),priceFc,tag:String(b.tag||'').slice(0,100),
-     sizes,pricesConfirmed:b.pricesConfirmed===true,isPublished:b.isPublished===true,variants:safe};
+     sizes,isPublished:b.isPublished===true,variants:safe};
    const rows=await sql`SELECT staff_save_product(${JSON.stringify(payload)}::jsonb) AS id`;
    await sql`INSERT INTO audit_log(action,resource_type,resource_id,metadata) VALUES('save_product','product',${rows[0].id},'{}'::jsonb)`;
    return json(res,200,{ok:true,id:rows[0].id});

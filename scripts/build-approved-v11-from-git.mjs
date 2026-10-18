@@ -48,6 +48,28 @@ const cdn=[
   " return ROOT+path;",
   "};"
 ].join('\n');
+app=app.replace('function changeCarousel(index){\n if(!promoSlides.length)return;', 'function changeCarousel(index){\n if(document.querySelector(\'.shop-carousel[data-marketing-applied="1"]\'))return;\n if(!promoSlides.length)return;');
+const legacyPromoEditor="else if(tab==='vitrine')body=promoEditor();";
+if(!app.includes(legacyPromoEditor))throw Error('Missing original V1.1 promo editor');
+app=app.replace(legacyPromoEditor,"else if(tab==='vitrine')body='<div class=\\\"panel\\\"><h2>Promotions et carrousel</h2><p>Les offres et les visuels se gèrent depuis le panneau sécurisé.</p><a class=\\\"btn btn-primary\\\" href=\\\"/staff.html\\\">Ouvrir la gestion des promotions</a></div>';");
+// Synchroniser les tarifs Neon avec le rendu V1.1 sans modifier l'archive validée.
+const originalProducts="const products=()=>BASE.map(p=>({...p, ...overrides[p.id], variants:p.variants})).concat(get('customProducts',[]));";
+if(!app.includes(originalProducts))throw Error('Impossible de trouver le catalogue V1.1');
+app=app.replace(originalProducts,"const products=()=>BASE.map(p=>({...p,...overrides[p.id],price:window.JORSEN_REMOTE_PRICES?.[p.id]??overrides[p.id]?.price??p.price,variants:p.variants})).concat(get('customProducts',[]));");
+const originalHashListener="window.addEventListener('hashchange',()=>{drawer=false;mobileNav=false;render();window.scrollTo(0,0)});";
+if(!app.includes(originalHashListener))throw Error('Impossible de trouver le rendu V1.1');
+app=app.replace(originalHashListener,originalHashListener+"\nwindow.addEventListener('jorsen-prices-updated',keepScroll);");
+
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
 console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
+
+
+// Laisser intact l'archive V1.1. Ajouter seulement les modules marketing externes :
+const indexFile=path.join('site','index.html');
+let index=await fs.readFile(indexFile,'utf8');
+if(!index.includes('</head>')||!index.includes('</body>'))throw Error('HTML V1.1 inattendu');
+index=index.replace('</head>','<link rel="stylesheet" href="/marketing-storefront.css"></head>');
+index=index.replace('</body>','<script defer src="/marketing-storefront.js"></script></body>');
+await fs.writeFile(indexFile,index,'utf8');
+console.log('Marketing overlay installed without modifying the approved V1.1 source archive.');

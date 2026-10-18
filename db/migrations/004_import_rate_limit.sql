@@ -14,10 +14,10 @@ BEGIN
      OR jsonb_typeof(p->'variants')<>'array'
      OR jsonb_array_length(p->'variants') NOT BETWEEN 1 AND 40
     THEN RAISE EXCEPTION 'Produit incorrect'; END IF;
-    INSERT INTO products(id,name,category,description,price_fc,tag,sizes,prices_confirmed,is_published)
+    INSERT INTO products(id,name,category,description,price_fc,tag,sizes,prices_confirmed,is_published,price_is_placeholder)
     VALUES(p->>'id',p->>'name',left(coalesce(p->>'category','Vêtements'),80),
        left(coalesce(p->>'description',''),3000),greatest(0,(p->>'price')::bigint),
-       left(coalesce(p->>'tag',''),100),coalesce(p->'sizes','[]'::jsonb),false,false)
+       left(coalesce(p->>'tag',''),100),coalesce(p->'sizes','[]'::jsonb),true,false,true)
     ON CONFLICT(id) DO NOTHING;
     count_p:=count_p+1;
     FOR v IN SELECT value FROM jsonb_array_elements(p->'variants') LOOP
