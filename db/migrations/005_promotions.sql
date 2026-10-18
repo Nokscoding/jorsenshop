@@ -102,7 +102,7 @@ BEGIN
     IF v_qty NOT BETWEEN 1 AND 10 OR v_size IS NULL THEN RAISE EXCEPTION 'Quantité ou taille invalide'; END IF;
     SELECT * INTO v_variant FROM product_variants WHERE id=entry->>'variantId';
     IF NOT FOUND THEN RAISE EXCEPTION 'Variante introuvable'; END IF;
-    SELECT * INTO v_product FROM products WHERE id=v_variant.product_id AND is_published AND prices_confirmed;
+    SELECT * INTO v_product FROM products WHERE id=v_variant.product_id AND is_published;
     IF NOT FOUND THEN RAISE EXCEPTION 'Produit non disponible'; END IF;
 
     v_price:=v_product.price_fc;
