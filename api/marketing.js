@@ -9,7 +9,7 @@ export default async function handler(req,res){
         AND (ends_at IS NULL OR ends_at>now()) ORDER BY position,id LIMIT 12`,
    sql`SELECT d.product_id AS "productId",d.kind,d.value,p.price_fc AS "basePrice"
       FROM product_discounts d JOIN products p ON p.id=d.product_id
-      WHERE d.active=true AND p.is_published=true AND p.prices_confirmed=true
+      WHERE d.active=true AND p.is_published=true
        AND (d.starts_at IS NULL OR d.starts_at<=now()) AND (d.ends_at IS NULL OR d.ends_at>now())`
   ]);
   return json(res,200,{slides,discounts:discounts.map(d=>({...d,value:Number(d.value),basePrice:Number(d.basePrice)}))});
