@@ -15,7 +15,7 @@ export default async function handler(req,res){
      JOIN products p ON p.id=v.product_id
      LEFT JOIN product_discounts d ON d.product_id=p.id AND d.active=true
       AND (d.starts_at IS NULL OR d.starts_at<=now()) AND (d.ends_at IS NULL OR d.ends_at>now())
-     WHERE v.id=${item.variantId} AND p.is_published=true AND p.prices_confirmed=true`;
+     WHERE v.id=${item.variantId} AND p.is_published=true`;
    if(!rows.length)return json(res,400,{error:'Produit indisponible'});
    const p=rows[0],price=Number(p.price_fc);
    const effective=p.kind==='percent'?Math.max(0,price-Math.round(price*Number(p.value)/100)):
