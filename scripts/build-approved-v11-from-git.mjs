@@ -49,6 +49,9 @@ const cdn=[
   "};"
 ].join('\n');
 app=app.replace('function changeCarousel(index){\n if(!promoSlides.length)return;', 'function changeCarousel(index){\n if(document.querySelector(\'.shop-carousel[data-marketing-applied="1"]\'))return;\n if(!promoSlides.length)return;');
+const legacyPromoEditor="else if(tab==='vitrine')body=promoEditor();";
+if(!app.includes(legacyPromoEditor))throw Error('Missing original V1.1 promo editor');
+app=app.replace(legacyPromoEditor,"else if(tab==='vitrine')body='<div class=\\\"panel\\\"><h2>Promotions et carrousel</h2><p>Les offres et les visuels se gèrent depuis le panneau sécurisé.</p><a class=\\\"btn btn-primary\\\" href=\\\"/staff.html\\\">Ouvrir la gestion des promotions</a></div>';");
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
 console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
