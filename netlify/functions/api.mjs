@@ -51,7 +51,7 @@ export default async function handler(request) {
       "COALESCE(json_agg(json_build_object('id', v.id, 'color', v.color, 'images', v.images) ORDER BY v.id)",
       "FILTER (WHERE v.id IS NOT NULL), '[]'::json) AS variants",
       'FROM products p LEFT JOIN product_variants v ON v.product_id = p.id',
-      'WHERE p.is_published = true AND p.prices_confirmed = true',
+      'WHERE p.is_published = true ',
       'AND ($1::text IS NULL OR p.id = $1)',
       'GROUP BY p.id ORDER BY p.id LIMIT 200'
     ].join(' ');
