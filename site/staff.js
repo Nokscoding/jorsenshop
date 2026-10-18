@@ -21,7 +21,7 @@ function setRole(r){
  renderNav();if(r)changeTab(tab);
 }
 function renderNav(){
- nav.innerHTML=(role==='admin'?[['products','Produits & photos'],['orders','Commandes'],['finance','Rapports']]:[['finance','Suivi financier']])
+ nav.innerHTML=(role==='admin'?[['products','Produits & photos'],['orders','Commandes'],['marketing','Promotions & carrousel'],['finance','Rapports']]:[['finance','Suivi financier']])
   .map(([key,text])=>'<button type="button" data-tab="'+key+'" class="'+(tab===key?'active':'')+'">'+text+'</button>').join('');
  $$('[data-tab]',nav).forEach(btn=>btn.onclick=()=>changeTab(btn.dataset.tab));
 }
@@ -30,6 +30,7 @@ async function changeTab(t){
  try{
   if(t==='products'&&role==='admin'){products=(await api('/api/admin/products')).products;renderProducts();}
   if(t==='orders'&&role==='admin'){orders=(await api('/api/admin/orders')).orders;renderOrders();}
+  if(t==='marketing'&&role==='admin'){await window.JorsenMarketingAdmin.render(content);}
   if(t==='finance')renderFinance(await api('/api/investor/summary'));
  }catch(e){content.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
 }
