@@ -15,7 +15,7 @@ export default async function handler(req,res){
       FROM products p LEFT JOIN product_discounts d ON d.product_id=p.id AND d.active=true
         AND (d.starts_at IS NULL OR d.starts_at<=now()) AND (d.ends_at IS NULL OR d.ends_at>now())
       LEFT JOIN product_variants v ON v.product_id=p.id
-      WHERE p.is_published=true AND p.prices_confirmed=true AND p.id=${id}
+      WHERE p.is_published=true AND p.id=${id}
       GROUP BY p.id LIMIT 1
     `;
     if(!rows.length)return res.status(404).json({error:"Produit indisponible"});
