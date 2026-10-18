@@ -46,10 +46,10 @@ export default async function handler(req,res){
    const url=String(b.mediaUrl||'').trim();
    if(!bannerUrl(url))return json(res,400,{error:'Importer une image Cloudinary Jorsenshop'});
    const headline=String(b.headline||'').trim();
-   const destination=String(b.destination||'#catalogue').trim();
+   const destination=String(b.destination||'#/catalogue').trim();
    const cta=String(b.cta||'Découvrir').trim();
    if(headline.length<2||headline.length>140||cta.length>50||
-      !(/^\/(?!\/)[a-zA-Z0-9/_#?=%&.-]{0,180}$/.test(destination)||/^#[a-zA-Z0-9_-]{1,60}$/.test(destination)))
+      !(/^\/(?!\/)[a-zA-Z0-9/_#?=%&.-]{0,180}$/.test(destination)||/^#\/[a-zA-Z0-9?=_&%./-]{1,180}$/.test(destination)||/^#[a-zA-Z0-9_-]{1,60}$/.test(destination)))
     return json(res,400,{error:'Titre ou destination invalide'});
    const starts=asDate(b.startsAt),ends=asDate(b.endsAt);
    if(!validTime(starts,ends))return json(res,400,{error:'Date de fin antérieure à la date de début'});
