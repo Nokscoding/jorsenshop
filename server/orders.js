@@ -2,6 +2,9 @@ import crypto from 'node:crypto';
 import {db,json,only,rateLimit} from './_lib/shared.js';
 export default async function handler(req,res){
  if(!only(req,res,'POST'))return;
+ // Authentification client obligatoire : aucun checkout invité en production.
+ // Ce contrôle restera fermé jusqu'à l'intégration d'une session client validée côté serveur.
+ if(!req.customer?.id)return json(res,401,{error:'Connectez-vous à votre compte client pour passer commande. Commandes temporairement indisponibles.'});
  try{if(!await rateLimit(req,'guest_checkout',12,60))return json(res,429,{error:'Trop de commandes. Réessaie plus tard.'})}catch{return json(res,503,{error:'Commandes temporairement indisponibles'})}
  try{
    const b=req.body||{};
