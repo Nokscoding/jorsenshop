@@ -4,7 +4,6 @@ DECLARE
   pid text := p->>'id';
   v jsonb; st record; vid text;
   want_publish boolean := coalesce((p->>'isPublished')::boolean,false);
-  confirmed boolean := coalesce((p->>'pricesConfirmed')::boolean,false);
   total_stock int := 0;
   image_count int := 0;
 BEGIN
@@ -16,14 +15,13 @@ BEGIN
     OR jsonb_array_length(p->'variants') NOT BETWEEN 1 AND 40
     OR jsonb_typeof(p->'sizes') <> 'array'
   THEN RAISE EXCEPTION 'Fiche produit incorrecte'; END IF;
-  IF want_publish AND NOT confirmed THEN RAISE EXCEPTION 'Confirmer les prix avant de publier'; END IF;
   INSERT INTO products(id,name,category,description,price_fc,tag,sizes,prices_confirmed,is_published,updated_at)
     VALUES(pid,trim(p->>'name'),trim(p->>'category'),left(coalesce(p->>'description',''),3000),
-      (p->>'priceFc')::bigint,left(coalesce(p->>'tag',''),100),p->'sizes',confirmed,false,now())
+      (p->>'priceFc')::bigint,left(coalesce(p->>'tag',''),100),p->'sizes',true,false,now())
     ON CONFLICT (id) DO UPDATE SET
       name=excluded.name,category=excluded.category,description=excluded.description,
       price_fc=excluded.price_fc,tag=excluded.tag,sizes=excluded.sizes,
-      prices_confirmed=excluded.prices_confirmed,is_published=false,updated_at=now();
+      prices_confirmed=true,price_is_placeholder=CASE WHEN products.price_fc IS DISTINCT FROM excluded.price_fc THEN false ELSE products.price_is_placeholder END,is_published=false,updated_at=now();
 
   FOR v IN SELECT value FROM jsonb_array_elements(p->'variants') LOOP
     vid := v->>'id';
