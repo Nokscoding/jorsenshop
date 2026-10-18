@@ -1,0 +1,28 @@
+name: Verify Jorsenshop marketing
+on:
+  push:
+    branches: [feat/promotions-carousel-20261018]
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'site/**'
+      - 'scripts/**'
+      - 'db/migrations/**'
+      - '.github/workflows/verify-marketing.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vérifier la syntaxe JavaScript
+        run: find api site scripts -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Restaurer le thème V1.1 approuvé
+        run: node scripts/build-approved-v11-from-git.mjs
+      - name: Vérifier les scripts marketing intégrés
+        run: |
+          grep -q 'marketing-storefront.js' site/index.html
+          grep -q 'marketing-storefront.css' site/index.html
+          node --check site/app.js
