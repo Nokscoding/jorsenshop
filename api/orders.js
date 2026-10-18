@@ -15,13 +15,15 @@ export default async function handler(req,res){
       return json(res,400,{error:'Nom, téléphone ou adresse invalide'});
    const idempotency=String(b.idempotencyKey||'');
    if(!/^[A-Za-z0-9_-]{12,100}$/.test(idempotency))return json(res,400,{error:'Identifiant de commande invalide'});
+   const promoCode=String(b.promoCode||'').trim().toUpperCase();
+   if(promoCode&&!/^[A-Z0-9_-]{4,32}$/.test(promoCode))return json(res,400,{error:'Code promo invalide'});
    const token=crypto.randomBytes(32).toString('base64url');
    const hash=crypto.createHash('sha256').update(token).digest('hex');
    const sql=db();
-   const rows=await sql`SELECT place_guest_order(${name},${phone},${address},${city},${notes},${JSON.stringify(items)}::jsonb,${idempotency},${hash}) AS result`;
+   const rows=await sql`SELECT place_guest_order_promo(${name},${phone},${address},${city},${notes},${JSON.stringify(items)}::jsonb,${idempotency},${hash},${promoCode||null}) AS result`;
    return json(res,201,{...rows[0].result,trackingToken:rows[0].result.existing?null:token,method:'Paiement à la livraison'});
  }catch(e){
    console.error('Place order:',e.name);
-   return json(res,409,{error:'Commande non enregistrée. Vérifier les quantités et le stock disponibles.'});
+   return json(res,409,{error:'Commande non enregistrée. Vérifier le stock et la validité du code promo.'});
  }
 }
