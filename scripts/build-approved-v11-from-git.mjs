@@ -51,3 +51,13 @@ const cdn=[
 app=app.replace(originalAsset,cdn);
 await fs.writeFile(appFile,app,'utf8');
 console.log('Media configured: 277 original product photos + logo + 2 lookbook videos from the dedicated Cloudinary account. No mockup design changes.');
+
+
+// Laisser intact l'archive V1.1. Ajouter seulement les modules marketing externes :
+const indexFile=path.join('site','index.html');
+let index=await fs.readFile(indexFile,'utf8');
+if(!index.includes('</head>')||!index.includes('</body>'))throw Error('HTML V1.1 inattendu');
+index=index.replace('</head>','<link rel="stylesheet" href="/marketing-storefront.css"></head>');
+index=index.replace('</body>','<script defer src="/marketing-storefront.js"></script></body>');
+await fs.writeFile(indexFile,index,'utf8');
+console.log('Marketing overlay installed without modifying the approved V1.1 source archive.');
