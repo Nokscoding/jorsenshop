@@ -133,6 +133,17 @@
    const response=await fetch('/api/marketing',{credentials:'same-origin',cache:'no-store'});
    if(!response.ok)return;
    const data=await response.json();
+   // Le catalogue public et le gérant lisent les mêmes prix depuis Neon.
+   try{
+    const pricesResponse=await fetch('/api/products',{credentials:'same-origin',cache:'no-store'});
+    if(pricesResponse.ok){
+     const catalogue=await pricesResponse.json();
+     window.JORSEN_REMOTE_PRICES=Object.fromEntries((Array.isArray(catalogue.products)?catalogue.products:[])
+      .filter(p=>p&&typeof p.id==='string'&&Number.isFinite(Number(p.originalPrice)))
+      .map(p=>[p.id,Number(p.originalPrice)]));
+     window.dispatchEvent(new Event('jorsen-prices-updated'));
+    }
+   }catch(error){console.warn('Synchronisation prix temporairement indisponible')}
    slides=(Array.isArray(data.slides)?data.slides:[]).filter(s=>cleanUrl(s.mediaUrl));
    discounts=new Map((Array.isArray(data.discounts)?data.discounts:[]).map(d=>[d.productId,d]));
    // Même sans campagne, le formulaire de la V1.1 ne doit plus créer
