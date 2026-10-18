@@ -26,7 +26,7 @@
  }
  function renderUI(){
   if(!root)return;
-  const s=slideEdit||{eyebrow:'OFFRE SPÉCIALE',headline:'',description:'',cta:'Découvrir',destination:'#catalogue',position:0,active:true};
+  const s=slideEdit||{eyebrow:'OFFRE SPÉCIALE',headline:'',description:'',cta:'Découvrir',destination:'#/catalogue',position:0,active:true};
   const d=discountEdit||{kind:'percent',value:10,active:true};
   const c=couponEdit||{kind:'percent',value:10,min_subtotal_fc:0,active:true};
   uploaded=s.media_url||'';
