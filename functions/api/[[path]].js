@@ -57,7 +57,6 @@ export async function onRequest(context) {
       FROM products p
       LEFT JOIN product_variants v ON v.product_id = p.id
       WHERE p.is_published = true
-        AND p.prices_confirmed = true
         AND (${id}::text IS NULL OR p.id = ${id})
       GROUP BY p.id
       ORDER BY p.id
