@@ -1,66 +1,100 @@
-// Jorsenshop — API publique en lecture seule (Netlify Functions).
-// Les opérations privées seront ajoutées avec une authentification serveur.
-import { neon } from '@neondatabase/serverless';
+// Jorsenshop — Netlify adapter for the existing API handlers.
+// Keep business logic, validation, authorization and database queries in /server;
+// this file only adapts Netlify's Web Request/Response runtime to the existing
+// Node-style req/res contract so the Vercel-to-Netlify migration does not fork logic.
+import api from '../../api/index.js';
 
-function json(body, status = 200, cache = 'no-store') {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': cache,
-      'x-content-type-options': 'nosniff'
-    }
-  });
+function jsonResponse(body, status, headers) {
+  const outputHeaders = new Headers(headers);
+  if (!outputHeaders.has('content-type')) {
+    outputHeaders.set('content-type', 'application/json; charset=utf-8');
+  }
+  if (!outputHeaders.has('cache-control')) outputHeaders.set('cache-control', 'no-store');
+  if (!outputHeaders.has('x-content-type-options')) outputHeaders.set('x-content-type-options', 'nosniff');
+  return new Response(JSON.stringify(body ?? null), { status: status || 200, headers: outputHeaders });
 }
 
-function formatProduct(row) {
-  return {
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    description: row.description,
-    price: Number(row.price_fc),
-    tag: row.tag,
-    sizes: row.sizes,
-    variants: row.variants
-  };
+function routeFromPath(pathname) {
+  const markers = ['/api/', '/.netlify/functions/api/'];
+  for (const marker of markers) {
+    const at = pathname.indexOf(marker);
+    if (at !== -1) return pathname.slice(at + marker.length).replace(/\/+$/, '');
+  }
+  if (pathname === '/api' || pathname === '/.netlify/functions/api') return '';
+  return '';
 }
 
 export default async function handler(request) {
-  if (request.method !== 'GET') return json({ error: 'Méthode non autorisée' }, 405);
-  const pathname = new URL(request.url).pathname;
-  const prefix = pathname.lastIndexOf('/api');
-  const route = prefix === -1 ? '' : pathname.slice(prefix + 4).replace(/\/+$/, '') || '/';
-  if (route !== '/health' && route !== '/products' && !/^\/products\/[a-zA-Z0-9_-]{1,64}$/.test(route)) {
-    return json({ error: 'Route inconnue' }, 404);
+  const url = new URL(request.url);
+  const pathRoute = routeFromPath(url.pathname);
+  const route = pathRoute || url.searchParams.get('route') || '';
+  const headersIn = Object.fromEntries(request.headers.entries());
+  const query = Object.fromEntries(url.searchParams.entries());
+  if (route) query.route = route;
+
+  let body;
+  if (!['GET', 'HEAD'].includes(request.method.toUpperCase())) {
+    const raw = await request.text();
+    if (raw) {
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        return jsonResponse({ error: 'Corps JSON invalide' }, 400);
+      }
+    }
   }
-  if (!process.env.DATABASE_URL) {
-    return json({ ok: false, error: 'Neon non configuré côté serveur' }, 503);
-  }
+
+  const headersOut = new Headers();
+  let statusCode = 200;
+  let responseBody;
+  let finished = false;
+  const res = {
+    status(code) {
+      statusCode = Number(code) || 200;
+      return this;
+    },
+    setHeader(name, value) {
+      const key = String(name).toLowerCase();
+      if (key === 'set-cookie' && Array.isArray(value)) {
+        for (const cookie of value) headersOut.append(key, String(cookie));
+      } else {
+        headersOut.set(key, Array.isArray(value) ? value.join(', ') : String(value));
+      }
+      return this;
+    },
+    getHeader(name) {
+      return headersOut.get(String(name).toLowerCase());
+    },
+    json(value) {
+      responseBody = value;
+      finished = true;
+      if (!headersOut.has('content-type')) headersOut.set('content-type', 'application/json; charset=utf-8');
+      return this;
+    },
+    end(value) {
+      if (value !== undefined) responseBody = value;
+      finished = true;
+      return this;
+    }
+  };
+
+  const req = {
+    method: request.method.toUpperCase(),
+    url: '/api/' + route + (url.search ? url.search : ''),
+    headers: headersIn,
+    query,
+    body,
+    socket: { remoteAddress: headersIn['x-nf-client-connection-ip'] || headersIn['x-forwarded-for'] || '' }
+  };
 
   try {
-    const sql = neon(process.env.DATABASE_URL);
-    if (route === '/health') {
-      await sql.query('SELECT 1 AS alive');
-      return json({ ok: true, database: 'connected' });
+    await api(req, res);
+    if (!finished) {
+      return jsonResponse({ error: 'Réponse API incomplète' }, 500, headersOut);
     }
-
-    const productId = route.startsWith('/products/') ? route.slice('/products/'.length) : null;
-    const query = [
-      'SELECT p.id, p.name, p.category, p.description, p.price_fc, p.tag, p.sizes,',
-      "COALESCE(json_agg(json_build_object('id', v.id, 'color', v.color, 'images', v.images) ORDER BY v.id)",
-      "FILTER (WHERE v.id IS NOT NULL), '[]'::json) AS variants",
-      'FROM products p LEFT JOIN product_variants v ON v.product_id = p.id',
-      'WHERE p.is_published = true ',
-      'AND ($1::text IS NULL OR p.id = $1)',
-      'GROUP BY p.id ORDER BY p.id LIMIT 200'
-    ].join(' ');
-    const rows = await sql.query(query, [productId]);
-    if (productId && rows.length === 0) return json({ error: 'Produit non disponible' }, 404);
-    if (productId) return json({ product: formatProduct(rows[0]) }, 200, 'public, max-age=30');
-    return json({ products: rows.map(formatProduct) }, 200, 'public, max-age=30');
+    return jsonResponse(responseBody, statusCode, headersOut);
   } catch (error) {
-    console.error('[Jorsenshop API] Failed:', error?.name || 'UnknownError');
-    return json({ ok: false, error: 'Service temporairement indisponible' }, 503);
+    console.error('[Jorsenshop Netlify API]', error?.name || 'UnknownError');
+    return jsonResponse({ error: 'Service temporairement indisponible' }, 500, headersOut);
   }
 }

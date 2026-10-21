@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/build-approved-v11-from-git.mjs"
   publish = "site"
   functions = "netlify/functions"
 
