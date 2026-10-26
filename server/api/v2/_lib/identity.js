@@ -13,7 +13,7 @@ export async function authFetch(req,path,options={}){
  // Neon Auth enforces an Origin header even on server-to-server signup calls.
  // Fetch requests to this same-origin API may omit Origin, so pin our trusted public URL.
  const headers={'Content-Type':'application/json',Accept:'application/json',
-   Origin:'https://jorsenshop.vercel.app'};
+   Origin:process.env.PUBLIC_SITE_URL || 'https://jorsenshop.netlify.app'};
  if(cookies)headers.Cookie=cookies;
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),10000);

@@ -1,6 +1,11 @@
 [build]
+  command = "node scripts/build-approved-v11-from-git.mjs"
   publish = "site"
+  command = "node scripts/build-approved-v11-from-git.mjs"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
@@ -17,3 +22,19 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "DENY"
+
+# Friendly aliases. Preserve the approved original portal URLs.
+[[redirects]]
+  from = "/admin"
+  to = "/s/a7m4/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/investisseur"
+  to = "/s/i9p2/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/livreur"
+  to = "/s/l6q8/index.html"
+  status = 200
