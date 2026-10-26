@@ -1,7 +1,6 @@
 [build]
-  command = "node scripts/build-approved-v11-from-git.mjs"
+  command = "node scripts/build-approved-v11-from-git.mjs && node --check site/app.js && node --check site/v2-final.js && node --check site/v2-staff.js && node --check netlify/functions/api.mjs"
   publish = "site"
-  command = "node scripts/build-approved-v11-from-git.mjs"
   functions = "netlify/functions"
 
 [build.environment]

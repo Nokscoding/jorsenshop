@@ -164,6 +164,7 @@ for(const rel of ['index.html','s/a7m4/index.html','s/i9p2/index.html','s/l6q8/i
  " BASE.splice(0,BASE.length,...items);",
  " overrides={};cart=cart.filter(c=>items.some(p=>p.id===c.id && p.variants?.[c.variant]?.id));put('cart',cart);",
  " // User accounts and real orders are managed by the final frontend.",
+ " BASE.splice(0,BASE.length);window.JORSEN_LIVE_MODE=true;",
  " render();",
  "};",
  endpointMarker
