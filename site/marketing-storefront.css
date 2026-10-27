@@ -1,0 +1,4 @@
+#app .shop-carousel[data-marketing-applied="1"] .carousel-controls button{font-family:inherit}
+#app .shop-carousel[data-marketing-applied="1"] .carousel-cta span{margin-left:6px}
+#app .js-promo-original{display:inline-block;font-size:.78em;font-weight:400;text-decoration:line-through;opacity:.65;margin-right:7px}
+#app .js-promo-price{font:inherit;font-weight:800;color:#167c60}

@@ -226,7 +226,7 @@ function viewProductImages(id){
 function adminHTML(){
  const orders=data.orders||[],products=data.products||[],categories=data.categories||[];
  const messages='<div class="jsv2-note">Chaque commande possède une conversation privée accessible depuis la rubrique Commandes.</div>';
- const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['equipe','Équipe'],['contact','Contact'],['notifications','Notifications']];
+ const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['marketing','Promotions'],['equipe','Équipe'],['contact','Contact'],['notifications','Notifications']];
  if(tab==='accueil')return frame('<div class="jsv2-grid">'+
   [['Commandes',orders.length],['En attente',orders.filter(o=>o.status==='a_confirmer').length],
    ['En préparation',orders.filter(o=>o.status==='en_preparation').length],
@@ -236,6 +236,7 @@ function adminHTML(){
  if(tab==='commandes')return frame('<h2>Gestion des commandes</h2><p class="jsv2-note">Pour Likasi, Fungurume et Kolwezi, confirmer le paiement avant toute préparation et expédition.</p>'+renderOrders(orders),nav);
  if(tab==='categories')return frame('<div class="jsv2-row"><h2>Catégories</h2>'+button('add-category','','+ Nouvelle catégorie')+'</div>'+
   categories.map(c=>'<div class="jsv2-card jsv2-row"><strong>'+h(c.name)+'</strong>'+button('rename-category',c.name,'Renommer')+'</div>').join(''),nav);
+ if(tab==='marketing')return frame('<div id="jsv2-marketing" class="jsv2-marketing"></div>',nav);
  if(tab==='produits')return frame('<h2>Ajouter un produit</h2><form id="jsv2-add-product" class="jsv2-form">'+
   '<label>Nom commercial<input name="name" required placeholder="Ex. Pull quarter-zip"></label>'+
   '<label>Catégorie<select name="category" required>'+categories.map(c=>'<option>'+h(c.name)+'</option>').join('')+'</select></label>'+
@@ -323,7 +324,13 @@ function driverHTML(){
 }
 function render(){
  const main=shell(portal==='admin'?adminHTML():portal==='investisseur'?investorHTML():driverHTML());
- if(main){main.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{tab=x.dataset.tab;render()});}
+ if(main){
+  main.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{tab=x.dataset.tab;render()});
+  if(portal==='admin'&&tab==='marketing'){
+   const node=$('#jsv2-marketing',main);
+   if(node&&window.JorsenMarketingAdmin)window.JorsenMarketingAdmin.render(node).catch(err=>{node.textContent=err.message||'Campagnes momentanément indisponibles';});
+  }
+ }
 }
 async function load(){
  if(!profile)return;

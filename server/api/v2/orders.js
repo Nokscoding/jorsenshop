@@ -37,11 +37,13 @@ export default async function handler(req,res){
  try{quote=shippingQuote(city,b.mode)}catch{return json(res,400,{error:'Mode ou ville non desservie'})}
  if(quote.paymentRequiredBeforePurchase&&!['airtel_money','orange_money'].includes(b.paymentProvider))
   return json(res,400,{error:'Choisir Airtel Money ou Orange Money pour l’expédition'});
+ const promoCode=String(b.promoCode||'').trim().toUpperCase();
+ if(promoCode&&!/^[A-Z0-9_-]{4,32}$/.test(promoCode))return json(res,400,{error:'Code promotionnel invalide'});
  const trackingToken=crypto.randomBytes(32).toString('base64url');
  const tokenHash=crypto.createHash('sha256').update(trackingToken).digest('hex');
  try{
-  const rows=await sql`SELECT place_v2_order(${user.id},${name},${phone},${address},${city},
-    ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode},${quote.paymentRequiredBeforePurchase?b.paymentProvider:null}) AS result`;
+  const rows=await sql`SELECT place_v2_order_with_promos(${user.id},${name},${phone},${address},${city},
+    ${notes},${JSON.stringify(items)}::jsonb,${idempotency},${tokenHash},${quote.mode},${quote.paymentRequiredBeforePurchase?b.paymentProvider:null},${promoCode||null}) AS result`;
   const result=rows[0].result;
   await dispatchPendingPush();
   return json(res,201,{...result,trackingToken:result.existing?null:trackingToken,

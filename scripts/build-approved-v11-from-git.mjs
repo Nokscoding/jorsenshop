@@ -80,7 +80,7 @@ console.log('Courrier preview: customer name, phone, address, instructions, assi
 // The auth/shipping feature layer activates only when the V2 API is configured.
 const publicHtmlPath=path.join('site','index.html');
 let publicHtml=await fs.readFile(publicHtmlPath,'utf8');
-const clientTag='<link rel="stylesheet" href="/v2-final.css"><script defer src="/v2-final.js"></script>';
+const clientTag='<link rel="stylesheet" href="/v2-final.css"><link rel="stylesheet" href="/marketing-storefront.css"><script defer src="/v2-final.js"></script><script defer src="/marketing-storefront.js"></script>';
 if(!publicHtml.includes(clientTag)){
   if(!/<\/body>/i.test(publicHtml))throw Error('Original public HTML missing body close');
   publicHtml=publicHtml.replace(/<\/body>/i,clientTag+'\n</body>');
@@ -96,7 +96,8 @@ for(const rel of ['s/a7m4/index.html','s/i9p2/index.html','s/l6q8/index.html']){
  if(!/<\/body>/i.test(html))throw Error('Staff HTML structure missing: '+rel);
  const script='<script defer src="../../v2-staff.js"></script>';
  if(!html.includes(script)){
-  html=html.replace(/<\/body>/i,script+'\n</body>');
+  const marketing=(rel==='s/a7m4/index.html')?'<link rel="stylesheet" href="/marketing-admin.css"><script defer src="/marketing-admin.js"></script>':'';
+  html=html.replace(/<\/body>/i,marketing+'\n'+script+'\n</body>');
   await fs.writeFile(target,html);
  }
 }

@@ -31,6 +31,9 @@ jobs:
           node scripts/build-approved-v11-from-git.mjs
           node --check site/app.js
           grep -q 'v2-final.js' site/index.html
+          grep -q 'marketing-storefront.js' site/index.html
+          grep -q 'marketing-storefront.css' site/index.html
+          grep -q 'marketing-admin.js' site/s/a7m4/index.html
           grep -q 'legal.js' site/index.html
           grep -q 'push-client.js' site/index.html
           for f in confidentialite cookies conditions-vente livraison contact; do

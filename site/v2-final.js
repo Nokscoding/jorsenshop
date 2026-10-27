@@ -187,6 +187,8 @@ function checkoutMarkup(){
  '<label>Téléphone de contact<input type="tel" name="phone" required minlength="7" maxlength="32" autocomplete="tel" value="'+esc(state.profile?.phone||'')+'"></label>'+
  '<label>Adresse complète<input name="address" required minlength="8" maxlength="350" autocomplete="street-address" placeholder="Commune, quartier, avenue, numéro…" value="'+esc(state.profile?.address||'')+'"></label>'+
  '<label>Instructions de livraison (facultatif)<textarea name="notes" rows="2" maxlength="600" placeholder="Point de repère, indications…"></textarea></label>'+
+ '<label>Code promo (facultatif)<input name="promoCode" maxlength="32" pattern="[A-Za-z0-9_-]{4,32}" placeholder="Ex. NOEL20" autocomplete="off"></label>'+
+ '<div class="j2-note">Les remises et codes promotionnels sont calculés par Jorsenshop au moment de la commande.</div>'+
  '<label>Mode de livraison<select name="mode" id="j2-delivery-mode">'+options.map(opt=>
  '<option value="'+esc(opt.id)+'" '+(opt.id===state.paymentMode?'selected':'')+'>'+
  (opt.id==='normal'?'Normale':opt.id==='express'?'Express':'Expédition via agence')+
@@ -348,7 +350,7 @@ async function handleCheckout(form){
  const payload={customerName:String(fd.get('name')||'').trim(),
    phone:String(fd.get('phone')||'').trim(),address:String(fd.get('address')||'').trim(),
    city:state.city,mode,notes:String(fd.get('notes')||'').trim(),
-   paymentProvider:fd.get('paymentProvider')||null,idempotencyKey:key,
+   paymentProvider:fd.get('paymentProvider')||null,promoCode:String(fd.get('promoCode')||'').trim().toUpperCase(),idempotencyKey:key,
    items:rows.map(x=>({variantId:x.variant.id,size:x.size,quantity:x.quantity}))};
  state.busy=true;state.orderError='';
  try{

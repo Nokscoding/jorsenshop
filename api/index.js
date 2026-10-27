@@ -28,6 +28,9 @@ import m25 from '../server/api/v2/shipping-quote.js';
 import m26 from '../server/api/v2/staff.js';
 import m27 from '../server/api/v2/contact.js';
 import m28 from '../server/api/v2/push.js';
+import marketingPublic from '../server/api/marketing.js';
+import marketingQuote from '../server/api/quote.js';
+import marketingAdmin from '../server/api/v2/admin/marketing.js';
 const routes=Object.freeze({
   'admin/catalogue-import':m0,
   'admin/media-sign':m1,
@@ -57,7 +60,10 @@ const routes=Object.freeze({
   'v2/shipping-quote':m25,
   'v2/staff':m26,
   'v2/contact':m27,
-  'v2/push':m28
+  'v2/push':m28,
+  'marketing':marketingPublic,
+  'quote':marketingQuote,
+  'v2/admin/marketing':marketingAdmin
 });
 export default async function handler(req,res){
  try{
