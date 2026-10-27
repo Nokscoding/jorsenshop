@@ -4,6 +4,7 @@ on:
     branches:
       - feature/jorsenshop-v2-foundations
       - feature/jorsenshop-finalisation-20261017
+      - release/netlify-v2-20261026
   pull_request:
     branches:
       - feature/jorsenshop-v2-foundations

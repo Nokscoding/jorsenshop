@@ -4,7 +4,7 @@ import {db} from '../../_lib/shared.js';
 export async function dispatchPendingPush(){
  if(!process.env.VAPID_PUBLIC_KEY||!process.env.VAPID_PRIVATE_KEY)return;
  try{
-  webpush.setVapidDetails('https://jorsenshop.vercel.app',process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
+  webpush.setVapidDetails(process.env.PUBLIC_SITE_URL || 'https://jorsenshop.netlify.app',process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
   const sql=db();
   const rows=await sql`SELECT n.id,n.user_auth_id,n.kind,n.title FROM v2_notifications n
     WHERE n.push_sent_at IS NULL AND n.created_at>now()-interval '48 hours'
