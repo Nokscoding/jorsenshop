@@ -12,7 +12,7 @@ const api=async(path,options={})=>{
  const o=await r.json().catch(()=>({}));
  if(!r.ok)throw Error(o.error||'Service indisponible');return o;
 };
-let profile=null,data={},tab='accueil',popup=null,loaded=false,unread=0;
+let profile=null,data={},tab='accueil',popup=null,loaded=false,unread=0,salesPage=1;
 const css=document.createElement('style');
 css.textContent=[
 '.jsv2-backdrop{position:fixed;inset:0;z-index:16000;display:grid;place-items:center;background:#f5f9fb;padding:18px}',
@@ -226,17 +226,18 @@ function viewProductImages(id){
 function adminHTML(){
  const orders=data.orders||[],products=data.products||[],categories=data.categories||[];
  const messages='<div class="jsv2-note">Chaque commande possède une conversation privée accessible depuis la rubrique Commandes.</div>';
- const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['marketing','Promotions'],['equipe','Équipe'],['contact','Contact'],['notifications','Notifications']];
+ const nav=[['accueil','Tableau de bord'],['commandes','Commandes'],['produits','Produits'],['categories','Catégories'],['marketing','Promotions'],['finances','Finances'],['equipe','Équipe'],['contact','Contact'],['notifications','Notifications']];
  if(tab==='accueil')return frame('<div class="jsv2-grid">'+
   [['Commandes',orders.length],['En attente',orders.filter(o=>o.status==='a_confirmer').length],
    ['En préparation',orders.filter(o=>o.status==='en_preparation').length],
    ['À expédier',orders.filter(o=>o.v2_ready_at&&o.status==='en_preparation').length],
-   ['Notifications',unread]].map(([k,v])=>'<div class="jsv2-stat"><span>'+h(k)+'</span><b>'+v+'</b></div>').join('')+
+   ['Notifications',unread],['Encaissements confirmés',money(data.finance?.totals?.cashReceivedFc||0)],['Part NKS (30 %)',data.finance?.totals?.nksShareFc===null?'Coûts manquants':money(data.finance?.totals?.nksShareFc||0)]].map(([k,v])=>'<div class="jsv2-stat"><span>'+h(k)+'</span><b>'+v+'</b></div>').join('')+
   '</div><h2>Commandes récentes</h2>'+renderOrders(orders.slice(0,6)),nav);
  if(tab==='commandes')return frame('<h2>Gestion des commandes</h2><p class="jsv2-note">Pour Likasi, Fungurume et Kolwezi, confirmer le paiement avant toute préparation et expédition.</p>'+renderOrders(orders),nav);
  if(tab==='categories')return frame('<div class="jsv2-row"><h2>Catégories</h2>'+button('add-category','','+ Nouvelle catégorie')+'</div>'+
   categories.map(c=>'<div class="jsv2-card jsv2-row"><strong>'+h(c.name)+'</strong>'+button('rename-category',c.name,'Renommer')+'</div>').join(''),nav);
  if(tab==='marketing')return frame('<div id="jsv2-marketing" class="jsv2-marketing"></div>',nav);
+ if(tab==='finances')return frame(financialReportHTML(data.finance||{}),nav);
  if(tab==='produits')return frame('<h2>Ajouter un produit</h2><form id="jsv2-add-product" class="jsv2-form">'+
   '<label>Nom commercial<input name="name" required placeholder="Ex. Pull quarter-zip"></label>'+
   '<label>Catégorie<select name="category" required>'+categories.map(c=>'<option>'+h(c.name)+'</option>').join('')+'</select></label>'+
@@ -285,21 +286,46 @@ function renderOrders(orders){
    '</div></article>';
  }).join('');
 }
-function investorHTML(){
- const m=data.monthly||[],e=data.expenses||[];
- const total=m.reduce((s,x)=>s+x.revenueFc,0),costs=m.reduce((s,x)=>s+x.purchaseCostsFc,0);
- const missing=m.reduce((s,x)=>s+x.missingCosts,0),share=m.every(x=>x.nksShareFc!==null)?
-  m.reduce((s,x)=>s+x.nksShareFc,0):null;
- return frame('<div class="jsv2-note">Accord communiqué : <b>30 % de la marge brute des articles encaissés</b> avant charges générales, hors frais de livraison. Versement mensuel à rapprocher avec la comptabilité, non automatique.</div>'+
- '<div class="jsv2-grid"><div class="jsv2-stat"><span>Ventes encaissées</span><b>'+money(total)+'</b></div>'+
- '<div class="jsv2-stat"><span>Coûts d’achat connus</span><b>'+money(costs)+'</b></div>'+
- '<div class="jsv2-stat"><span>Part NKS (30 %)</span><b>'+(share===null?'À compléter':money(share))+'</b></div></div>'+
- (missing?'<p class="jsv2-error">Coûts d’achat manquants sur '+missing+' ligne(s) vendue(s) : impossible de calculer un bénéfice exact.</p>':'')+
- '<h2>Historique mensuel</h2><div class="jsv2-table-wrap"><table class="jsv2-table"><thead><tr><th>Mois</th><th>Commandes payées</th><th>Ventes</th><th>Coûts d’achat</th><th>Marge brute</th><th>Part de 30 %</th></tr></thead><tbody>'+
- m.map(x=>'<tr><td>'+h(x.month)+'</td><td>'+x.orders+'</td><td>'+money(x.revenueFc)+'</td><td>'+money(x.purchaseCostsFc)+'</td><td>'+(x.grossProfitFc===null?'Coûts manquants':money(x.grossProfitFc))+'</td><td>'+(x.nksShareFc===null?'—':money(x.nksShareFc))+'</td></tr>').join('')+'</tbody></table></div>'+
- '<h2>Accords enregistrés</h2>'+((data.agreements||[]).map(a=>'<p>'+h(a.name)+' — '+h(a.percentage)+' %</p>').join('')||'<p>Aucun document d’accord signé enregistré dans la base.</p>'),
- [['accueil','Synthèse']]);
+function financialReportHTML(report){
+ if(report.error)return '<div class="jsv2-note">Rapports indisponibles : '+h(report.error)+'</div>';
+ const t=report.totals||{orders:0,cashReceivedFc:0,revenueFc:0,deliveryFeesFc:0,purchaseCostsFc:0,grossProfitFc:0,nksShareFc:0,missingCosts:0};
+ const m=report.monthly||[],sales=report.sales||[],pending=report.pendingCash||{};
+ const page=report.pagination?.page||1,pages=report.pagination?.pages||1;
+ const stats=[['Commandes payées',t.orders||0],['Total encaissé confirmé',money(t.cashReceivedFc)],['Ventes articles après remises',money(t.revenueFc)],
+  ['Frais de livraison encaissés',money(t.deliveryFeesFc)],['Coûts d’achat connus',money(t.purchaseCostsFc)],
+  ['Marge brute',t.grossProfitFc===null?'À compléter':money(t.grossProfitFc)],
+  ['Part NKS · 30 %',t.nksShareFc===null?'À compléter':money(t.nksShareFc)]];
+ const rows=sales.map(x=>'<tr><td>'+h(new Date(x.paidAt).toLocaleDateString('fr-FR'))+'</td>'+
+  '<td><strong>'+h(x.orderNumber)+'</strong><small>'+h(x.customerName)+'</small></td>'+
+  '<td>'+h((x.items||[]).map(i=>i.name+' ×'+i.qty+' à '+money(i.unitPriceFc)).join(' ; '))+'</td>'+
+  '<td>'+money(x.revenueFc)+'</td><td>'+money(x.discountsFc)+'</td>'+
+  '<td>'+money(x.deliveryFeesFc)+'</td><td><strong>'+money(x.cashReceivedFc)+'</strong></td>'+
+  '<td>'+(x.missingCosts?'Non renseigné':money(x.purchaseCostsFc))+'</td>'+
+  '<td>'+(x.grossProfitFc===null?'—':money(x.grossProfitFc))+'</td>'+
+  '<td><strong>'+(x.nksShareFc===null?'—':money(x.nksShareFc))+'</strong></td></tr>').join('');
+ return '<div class="jsv2-note"><b>Accord : 30 % de la marge brute positive de chaque vente payée</b>, après remises, avant charges générales, hors livraison. Calcul automatique ; versement NKS séparé.</div>'+
+  '<div class="jsv2-grid">'+stats.map(([k,v])=>'<div class="jsv2-stat"><span>'+h(k)+'</span><b>'+h(v)+'</b></div>').join('')+'</div>'+
+  (Number(pending.unverifiedFc)>0?'<div class="jsv2-note"><b>'+money(pending.unverifiedFc)+'</b> déclarés reçus par les livreurs sur '+h(pending.deliveries)+
+    ' livraison(s), en attente de vérification par le gérant. Non inclus dans les recettes confirmées.</div>':'')+
+  (Number(t.missingCosts)>0?'<div class="jsv2-note">Attention : '+h(t.missingCosts)+' ligne(s) payée(s) sans coût d’achat enregistré. Marge globale et part NKS à compléter.</div>':'')+
+  '<h2>Historique détaillé des ventes encaissées</h2><p class="jsv2-note">Totaux sur tout l’historique, commandes en attente exclues du calcul financier.</p>'+
+  '<div class="jsv2-table-wrap"><table class="jsv2-table" style="min-width:1100px"><thead><tr><th>Date</th><th>Commande / client</th>'+
+  '<th>Articles et prix unitaires</th><th>Ventes nettes</th><th>Remises</th><th>Livraison</th><th>Total encaissé</th>'+
+  '<th>Coût d’achat</th><th>Marge</th><th>Part NKS</th></tr></thead><tbody>'+
+  (rows||'<tr><td colspan="10">Aucun paiement confirmé pour le moment.</td></tr>')+'</tbody></table></div>'+
+  '<div class="jsv2-row"><p>Page '+h(page)+' / '+h(pages)+' · '+h(t.orders||0)+' ventes encaissées</p>'+
+  '<div class="jsv2-actions"><button type="button" data-finance-page="-1" '+(page<=1?'disabled':'')+'>Précédent</button>'+
+  '<button type="button" data-finance-page="1" '+(page>=pages?'disabled':'')+'>Suivant</button></div></div>'+
+  '<h2>Historique mensuel</h2><div class="jsv2-table-wrap"><table class="jsv2-table" style="min-width:750px"><thead><tr>'+
+  '<th>Mois</th><th>Commandes payées</th><th>Total encaissé</th><th>Ventes articles</th>'+
+  '<th>Coûts d’achat</th><th>Marge brute</th><th>Part NKS 30 %</th></tr></thead><tbody>'+
+  (m.map(x=>'<tr><td>'+h(x.month)+'</td><td>'+h(x.orders)+'</td><td>'+money(x.cashReceivedFc)+'</td>'+
+   '<td>'+money(x.revenueFc)+'</td><td>'+money(x.purchaseCostsFc)+'</td>'+
+   '<td>'+(x.grossProfitFc===null?'À compléter':money(x.grossProfitFc))+'</td>'+
+   '<td>'+(x.nksShareFc===null?'À compléter':money(x.nksShareFc))+'</td></tr>').join('')||
+   '<tr><td colspan="7">Aucun paiement confirmé.</td></tr>')+'</tbody></table></div>';
 }
+function investorHTML(){return frame(financialReportHTML(data),[['accueil','Synthèse']]);}
 function driverHTML(){
  const rows=data.deliveries||[];
  const todo=rows.filter(x=>x.delivery_status!=='delivered');
@@ -326,6 +352,12 @@ function render(){
  const main=shell(portal==='admin'?adminHTML():portal==='investisseur'?investorHTML():driverHTML());
  if(main){
   main.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{tab=x.dataset.tab;render()});
+  main.querySelectorAll('[data-finance-page]').forEach(el=>el.onclick=async()=>{
+   const next=salesPage+Number(el.dataset.financePage||0);
+   const pages=(portal==='admin'?data.finance?.pagination?.pages:data.pagination?.pages)||1;
+   if(next<1||next>pages)return;
+   salesPage=next;try{await load()}catch(err){notice(err.message)}
+  });
   if(portal==='admin'&&tab==='marketing'){
    const node=$('#jsv2-marketing',main);
    if(node&&window.JorsenMarketingAdmin)window.JorsenMarketingAdmin.render(node).catch(err=>{node.textContent=err.message||'Campagnes momentanément indisponibles';});
@@ -335,12 +367,13 @@ function render(){
 async function load(){
  if(!profile)return;
  if(portal==='admin'){
-  const [orders,cat,notif,roles,contact]=await Promise.all([
-   api('admin/orders'),api('admin/catalogue'),api('notifications'),api('admin/roles'),api('contact')
+  const [orders,cat,notif,roles,contact,finance]=await Promise.all([
+   api('admin/orders'),api('admin/catalogue'),api('notifications'),api('admin/roles'),api('contact'),
+   api('investor?page='+salesPage).catch(err=>({error:err.message}))
   ]);
-  data={...orders,...cat,...roles,notifications:notif.notifications,contactMessages:contact.messages};
+  data={...orders,...cat,...roles,notifications:notif.notifications,contactMessages:contact.messages,finance};
   unread=notif.unread;
- }else if(portal==='investisseur')data=await api('investor');
+ }else if(portal==='investisseur')data=await api('investor?page='+salesPage);
  else data=await api('driver');
  loaded=true;render();
 }
